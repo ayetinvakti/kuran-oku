@@ -143,7 +143,6 @@
             margin-top: 4px;
         }
 
-        /* Ayet Kartları Stili */
         .verse-box {
             padding: 16px 0;
             border-bottom: 1px solid var(--border-color);
@@ -263,7 +262,6 @@
                 selectEl.appendChild(option);
             });
 
-            // Varsayılan Fatiha Suresi
             loadSurah(1);
         } catch (err) {
             document.getElementById('quranContent').innerHTML = 'Sure listesi yüklenirken hata oluştu. Lütfen internet bağlantınızı kontrol edin.';
@@ -289,29 +287,32 @@
                 document.getElementById('surahMeta').innerText = `${surahInfo.numberOfAyahs} Ayet • ${surahInfo.revelationType === 'Meccan' ? 'Mekke' : 'Medine'}`;
             }
 
-            // Tevbe Suresi (9) hariç Besmele göster
             if (parseInt(surahNumber) === 9 || parseInt(surahNumber) === 1) {
                 bismillahEl.style.display = 'none';
             } else {
                 bismillahEl.style.display = 'block';
             }
 
-            // Doğru endpoint yapısıyla Türkçe Diyanet Meali ve Arapça metni çekiyoruz
-            const res = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/editions/quran-uthmani,tr.diyanet`);
-            const data = await res.json();
+            // Arapça ve Türkçe isteklerini tamamen bağımsız iki ayrı uçtan çekiyoruz
+            const [arabicRes, translationRes] = await Promise.all([
+                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`),
+                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/tr.diyanet`)
+            ]);
 
-            // editions yapısında [0] Arapça, [1] Türkçe Diyanettir
-            const arabicAyahs = data.data[0].ayahs;
-            const translationAyahs = data.data[1].ayahs;
+            const arabicData = await arabicRes.json();
+            const translationData = await translationRes.json();
+
+            const arabicAyahs = arabicData.data.ayahs;
+            const translationAyahs = translationData.data.ayahs;
 
             let htmlContent = '';
             
             for (let i = 0; i < arabicAyahs.length; i++) {
                 let arabicText = arabicAyahs[i].text;
-                let transText = translationAyahs[i].text;
+                // Doğrudan karşılık gelen ayetin meal metnini alıyoruz
+                let transText = translationAyahs[i] ? translationAyahs[i].text : '';
                 let ayahNum = arabicAyahs[i].numberInSurah;
 
-                // İlk ayetteki mükerrer besmele temizliği (Fatiha hariç)
                 if (surahNumber != 1 && surahNumber != 9 && ayahNum === 1) {
                     arabicText = arabicText.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim();
                 }
