@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kur'an-ı Kerim Oku (Arapça) | Ayetin Vakti</title>
+    
+    <!-- Google Fonts - Arapça Amiri Fontu -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+
+    <script>
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'light' || (!savedTheme && !systemPrefersDark)) {
+            document.documentElement.classList.add('light-mode');
+        }
+    </script>
+
+    <style>
+        :root {
+            --bg-color: #0b1120;
+            --card-bg: #1e293b;
+            --accent-color: #10b981;
+            --text-color: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+            --arabic-text-color: #f1f5f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .navbar {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+        }
+
+        .back-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--accent-color);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .app-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-color);
+        }
+
+        .select-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 14px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .surah-select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 1rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .bismillah {
+            font-family: 'Amiri', serif;
+            font-size: 2rem;
+            text-align: center;
+            color: var(--accent-color);
+            margin: 10px 0 20px 0;
+            direction: rtl;
+        }
+
+        .reader-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 24px 20px;
+            min-height: 400px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .surah-info-header {
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+
+        .surah-name-tr {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--accent-color);
+        }
+
+        .surah-meta {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .quran-text-container {
+            direction: rtl;
+            font-family: 'Amiri', serif;
+            font-size: 1.8rem;
+            line-height: 2.4;
+            text-align: justify;
+            color: var(--arabic-text-color);
+        }
+
+        .verse-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+            border-radius: 50%;
+            width: 34px;
+            height: 34px;
+            margin: 0 8px;
+            font-family: -apple-system, sans-serif;
+            vertical-align: middle;
+        }
+
+        .loading-spinner {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        body.light-mode {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --arabic-text-color: #1e293b;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header class="navbar">
+        <a href="../" class="back-btn">‹ Ana Sayfa</a>
+        <div class="app-title">Kur'an-ı Kerim Oku</div>
+        <div style="width: 70px;"></div>
+    </header>
+
+    <div class="select-card">
+        <select id="surahSelect" class="surah-select" onchange="loadSurah(this.value)">
+            <option value="">Sure Seçiniz...</option>
+        </select>
+    </div>
+
+    <div class="reader-card">
+        <div class="surah-info-header" id="surahHeader" style="display: none;">
+            <div class="surah-name-tr" id="surahTitle">Fatiha Suresi</div>
+            <div class="surah-meta" id="surahMeta">7 Ayet • Mekke</div>
+        </div>
+
+        <div id="bismillahHeader" class="bismillah" style="display: none;">
+            بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
+        </div>
+
+        <div id="quranContent" class="loading-spinner">
+            Sure yükleniyor...
+        </div>
+    </div>
+</div>
+
+<script>
+    let surahList = [];
+
+    async function init() {
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'light' || (!savedTheme && !systemPrefersDark)) {
+            document.body.classList.add('light-mode');
+        }
+
+        try {
+            const res = await fetch('https://api.alquran.cloud/v1/surah');
+            const data = await res.json();
+            surahList = data.data;
+
+            const selectEl = document.getElementById('surahSelect');
+            selectEl.innerHTML = '';
+            
+            surahList.forEach(surah => {
+                const option = document.createElement('option');
+                option.value = surah.number;
+                option.textContent = `${surah.number}. ${surah.englishName} (${surah.name})`;
+                selectEl.appendChild(option);
+            });
+
+            // Varsayılan olarak Fatiha suresini yükle (1. Sure)
+            loadSurah(1);
+        } catch (err) {
+            document.getElementById('quranContent').innerHTML = 'Sure listesi yüklenirken hata oluştu. Lütfen internet bağlantınızı kontrol edin.';
+        }
+    }
+
+    async function loadSurah(surahNumber) {
+        if (!surahNumber) return;
+
+        const contentEl = document.getElementById('quranContent');
+        const headerEl = document.getElementById('surahHeader');
+        const bismillahEl = document.getElementById('bismillahHeader');
+
+        contentEl.className = 'loading-spinner';
+        contentEl.innerHTML = 'Ayetler yükleniyor...';
+
+        try {
+            const surahInfo = surahList.find(s => s.number == surahNumber);
+            
+            if (surahInfo) {
+                headerEl.style.display = 'block';
+                document.getElementById('surahTitle').innerText = `${surahInfo.number}. ${surahInfo.englishName} (${surahInfo.name})`;
+                document.getElementById('surahMeta').innerText = `${surahInfo.numberOfAyahs} Ayet • ${surahInfo.revelationType === 'Meccan' ? 'Mekke' : 'Medine'}`;
+            }
+
+            // Tevbe Suresi (9) hariç Besmele göster
+            if (parseInt(surahNumber) === 9 || parseInt(surahNumber) === 1) {
+                bismillahEl.style.display = 'none';
+            } else {
+                bismillahEl.style.display = 'block';
+            }
+
+            const res = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`);
+            const data = await res.json();
+            const ayahs = data.data.ayahs;
+
+            let htmlContent = '';
+            ayahs.forEach(ayah => {
+                let text = ayah.text;
+                // İlk ayetteki besmeleyi temizle (Fatiha hariç API besmele ile başlatabilir)
+                if (surahNumber != 1 && surahNumber != 9 && ayah.numberInSurah === 1) {
+                    text = text.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim();
+                }
+                htmlContent += `${text} <span class="verse-number">${ayah.numberInSurah}</span> `;
+            });
+
+            contentEl.className = 'quran-text-container';
+            contentEl.innerHTML = htmlContent;
+
+        } catch (err) {
+            contentEl.className = 'loading-spinner';
+            contentEl.innerHTML = 'Ayetler yüklenirken hata oluştu.';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
