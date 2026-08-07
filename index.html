@@ -28,6 +28,7 @@
             --border-color: #334155;
             --arabic-text-color: #f1f5f9;
             --translation-color: #cbd5e1;
+            --transliteration-color: #38bdf8;
         }
 
         * {
@@ -176,6 +177,15 @@
             color: var(--translation-color);
         }
 
+        .transliteration-text {
+            direction: ltr;
+            font-size: 1.05rem;
+            line-height: 1.7;
+            text-align: left;
+            color: var(--transliteration-color);
+            font-style: italic;
+        }
+
         .verse-number-badge {
             display: inline-flex;
             align-items: center;
@@ -207,6 +217,7 @@
             --border-color: #e2e8f0;
             --arabic-text-color: #0f172a;
             --translation-color: #334155;
+            --transliteration-color: #0284c7;
         }
     </style>
 </head>
@@ -243,7 +254,7 @@
 
 <script>
     let surahList = [];
-    let currentMode = 'arabic'; // 'arabic' veya 'translation'
+    let currentMode = 'arabic'; // 'arabic', 'translation', 'transliteration'
     let currentSurahNumber = 1;
 
     async function init() {
@@ -278,6 +289,10 @@
         if (currentMode === 'arabic') {
             currentMode = 'translation';
             document.getElementById('appTitle').innerText = "Kur'an-ı Kerim Meal";
+            document.getElementById('modeBtn').innerText = "Okunuş ›";
+        } else if (currentMode === 'translation') {
+            currentMode = 'transliteration';
+            document.getElementById('appTitle').innerText = "Kur'an-ı Kerim Okunuş";
             document.getElementById('modeBtn').innerText = "‹ Arapça";
         } else {
             currentMode = 'arabic';
@@ -296,7 +311,9 @@
         const bismillahEl = document.getElementById('bismillahHeader');
 
         contentEl.className = 'loading-spinner';
-        contentEl.innerHTML = currentMode === 'arabic' ? 'Ayetler yükleniyor...' : 'Mealler yükleniyor...';
+        if (currentMode === 'arabic') contentEl.innerHTML = 'Ayetler yükleniyor...';
+        else if (currentMode === 'translation') contentEl.innerHTML = 'Mealler yükleniyor...';
+        else contentEl.innerHTML = 'Okunuşlar yükleniyor...';
 
         try {
             const surahInfo = surahList.find(s => s.number == surahNumber);
@@ -313,10 +330,13 @@
                 bismillahEl.style.display = 'block';
             }
 
-            // Mod'a göre doğru API endpoint'ini çağırıyoruz (Arapça veya Türkçe Meal)
-            const endpoint = currentMode === 'arabic' 
-                ? `https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`
-                : `https://api.alquran.cloud/v1/surah/${surahNumber}/tr.yazir`;
+            // Hangi moddaysak ilgili API endpoint'ini seçiyoruz
+            let endpoint = `https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`;
+            if (currentMode === 'translation') {
+                endpoint = `https://api.alquran.cloud/v1/surah/${surahNumber}/tr.yazir`;
+            } else if (currentMode === 'transliteration') {
+                endpoint = `https://api.alquran.cloud/v1/surah/${surahNumber}/en.transliteration`;
+            }
 
             const res = await fetch(endpoint);
             const data = await res.json();
@@ -340,10 +360,18 @@
                             </div>
                         </div>
                     `;
-                } else {
+                } else if (currentMode === 'translation') {
                     htmlContent += `
                         <div class="verse-box">
                             <div class="translation-text">
+                                <span class="verse-number-badge">${ayahNum}</span> ${text}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    htmlContent += `
+                        <div class="verse-box">
+                            <div class="transliteration-text">
                                 <span class="verse-number-badge">${ayahNum}</span> ${text}
                             </div>
                         </div>
