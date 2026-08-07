@@ -293,10 +293,11 @@
                 bismillahEl.style.display = 'block';
             }
 
-            // Arapça ve Türkçe isteklerini tamamen bağımsız iki ayrı uçtan çekiyoruz
+            // tr.diyanet yerine en kararlı çalışan Türkçe meal endpoint'i olan tr.yazir (Elmalılı Hamdi Yazır) kullanıyoruz
+            // Bu API yapısı sure içerisindeki ayet meallerini kusursuz ve benzersiz şekilde verir.
             const [arabicRes, translationRes] = await Promise.all([
                 fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`),
-                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/tr.diyanet`)
+                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/tr.yazir`)
             ]);
 
             const arabicData = await arabicRes.json();
@@ -309,8 +310,7 @@
             
             for (let i = 0; i < arabicAyahs.length; i++) {
                 let arabicText = arabicAyahs[i].text;
-                // Doğrudan karşılık gelen ayetin meal metnini alıyoruz
-                let transText = translationAyahs[i] ? translationAyahs[i].text : '';
+                let transText = translationAyahs[i] ? translationAyahs[i].text : 'Meal bulunamadı.';
                 let ayahNum = arabicAyahs[i].numberInSurah;
 
                 if (surahNumber != 1 && surahNumber != 9 && ayahNum === 1) {
