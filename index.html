@@ -296,17 +296,13 @@
                 bismillahEl.style.display = 'block';
             }
 
-            // Hem Arapça (uthmani) hem de Diyanet Meali (tr.diyanet) verilerini paralel olarak çekiyoruz
-            const [arabicRes, translationRes] = await Promise.all([
-                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`),
-                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/tr.diyanet`)
-            ]);
+            // Doğru endpoint yapısıyla Türkçe Diyanet Meali ve Arapça metni çekiyoruz
+            const res = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/editions/quran-uthmani,tr.diyanet`);
+            const data = await res.json();
 
-            const arabicData = await arabicRes.json();
-            const translationData = await translationRes.json();
-
-            const arabicAyahs = arabicData.data.ayahs;
-            const translationAyahs = translationData.data.ayahs;
+            // editions yapısında [0] Arapça, [1] Türkçe Diyanettir
+            const arabicAyahs = data.data[0].ayahs;
+            const translationAyahs = data.data[1].ayahs;
 
             let htmlContent = '';
             
@@ -332,7 +328,7 @@
                 `;
             }
 
-            contentEl.className = ''; // Spinner class'ını kaldır
+            contentEl.className = ''; 
             contentEl.innerHTML = htmlContent;
 
         } catch (err) {
