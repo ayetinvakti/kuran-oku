@@ -51,7 +51,7 @@
 
         .container {
             width: 100%;
-            max-width: 700px;
+            max-width: 800px;
             display: flex;
             flex-direction: column;
             gap: 16px;
@@ -143,15 +143,16 @@
             margin-top: 4px;
         }
 
-        .verse-box {
-            padding: 16px 0;
+        /* Ayet Satırı - Arapça ve Meal Düzeni */
+        .verse-row {
+            padding: 18px 0;
             border-bottom: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             gap: 12px;
         }
 
-        .verse-box:last-child {
+        .verse-row:last-child {
             border-bottom: none;
         }
 
@@ -170,6 +171,8 @@
             line-height: 1.6;
             color: var(--translation-color);
             text-align: left;
+            padding-left: 4px;
+            border-left: 3px solid var(--accent-color);
         }
 
         .verse-number-badge {
@@ -248,21 +251,22 @@
         }
 
         try {
-            const res = await fetch('https://api.alquran.cloud/v1/surah');
-            const data = await res.json();
-            surahList = data.data;
+            // AçıkKuran API üzerinden güncel sure listesini alıyoruz
+            const res = await fetch('https://api.acikkuran.com/surahs');
+            const json = await res.json();
+            surahList = json.data;
 
             const selectEl = document.getElementById('surahSelect');
             selectEl.innerHTML = '';
             
             surahList.forEach(surah => {
                 const option = document.createElement('option');
-                option.value = surah.number;
-                option.textContent = `${surah.number}. ${surah.englishName} (${surah.name}) - ${surah.englishNameTranslation}`;
+                option.value = surah.id;
+                option.textContent = `${surah.id}. ${surah.name} (${surah.latin_name}) - ${surah.verse_count} Ayet`;
                 selectEl.appendChild(option);
             });
 
-            loadSurah(1);
+            loadSurah(1); // Varsayılan Fatiha
         } catch (err) {
             document.getElementById('quranContent').innerHTML = 'Sure listesi yüklenirken hata oluştu. Lütfen internet bağlantınızı kontrol edin.';
         }
@@ -279,21 +283,21 @@
         contentEl.innerHTML = 'Ayetler ve mealler yükleniyor...';
 
         try {
-            const surahInfo = surahList.find(s => s.number == surahNumber);
+            const surahInfo = surahList.find(s => s.id == surahNumber);
             
             if (surahInfo) {
                 headerEl.style.display = 'block';
-                document.getElementById('surahTitle').innerText = `${surahInfo.number}. ${surahInfo.englishName} (${surahInfo.name})`;
-                document.getElementById('surahMeta').innerText = `${surahInfo.numberOfAyahs} Ayet • ${surahInfo.revelationType === 'Meccan' ? 'Mekke' : 'Medine'}`;
+                document.getElementById('surahTitle').innerText = `${surahInfo.id}. ${surahInfo.name} (${surahInfo.latin_name})`;
+                document.getElementById('surahMeta').innerText = `${surahInfo.verse_count} Ayet • ${surahInfo.place === 'mecca' ? 'Mekke' : 'Medine'}`;
             }
 
+            // Tevbe Suresi (9) ve Fatiha (1) hariç besmele gösterimi
             if (parseInt(surahNumber) === 9 || parseInt(surahNumber) === 1) {
                 bismillahEl.style.display = 'none';
             } else {
                 bismillahEl.style.display = 'block';
             }
 
-            // Tamamen bağımsız ve farklı bir veri kaynağı olan Diyanet İşleri Meali altyapısını kullanıyoruz
             const res = await fetch(`https://api.acikkuran.com/surah/${surahNumber}`);
             const json = await res.json();
 
@@ -306,11 +310,11 @@
             
             verses.forEach((verse) => {
                 let ayahNum = verse.verse_number;
-                let arabicText = verse.verse; // AcıkKuran API doğrudan orijinal hat yazımını ve mealini verir
-                let transText = verse.translation.text;
+                let arabicText = verse.verse; 
+                let transText = verse.translation ? verse.translation.text : 'Meal bulunamadı.';
 
                 htmlContent += `
-                    <div class="verse-box">
+                    <div class="verse-row">
                         <div class="arabic-text">
                             ${arabicText} <span class="verse-number-badge">${ayahNum}</span>
                         </div>
