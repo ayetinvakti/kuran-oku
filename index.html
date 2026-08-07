@@ -27,6 +27,7 @@
             --text-muted: #94a3b8;
             --border-color: #334155;
             --arabic-text-color: #f1f5f9;
+            --translation-color: #cbd5e1;
         }
 
         * {
@@ -67,7 +68,7 @@
             border-radius: 16px;
         }
 
-        .back-btn {
+        .back-btn, .mode-btn {
             display: flex;
             align-items: center;
             gap: 6px;
@@ -75,6 +76,10 @@
             text-decoration: none;
             font-weight: 600;
             font-size: 0.95rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 0;
         }
 
         .app-title {
@@ -163,6 +168,14 @@
             color: var(--arabic-text-color);
         }
 
+        .translation-text {
+            direction: ltr;
+            font-size: 1.1rem;
+            line-height: 1.7;
+            text-align: left;
+            color: var(--translation-color);
+        }
+
         .verse-number-badge {
             display: inline-flex;
             align-items: center;
@@ -193,6 +206,7 @@
             --text-muted: #64748b;
             --border-color: #e2e8f0;
             --arabic-text-color: #0f172a;
+            --translation-color: #334155;
         }
     </style>
 </head>
@@ -201,8 +215,8 @@
 <div class="container">
     <header class="navbar">
         <a href="../" class="back-btn">‹ Ana Sayfa</a>
-        <div class="app-title">Kur'an-ı Kerim</div>
-        <div style="width: 70px;"></div>
+        <div class="app-title" id="appTitle">Kur'an-ı Kerim</div>
+        <button class="mode-btn" id="modeBtn" onclick="toggleMode()">Meal ›</button>
     </header>
 
     <div class="select-card">
@@ -229,6 +243,8 @@
 
 <script>
     let surahList = [];
+    let currentMode = 'arabic'; // 'arabic' veya 'translation'
+    let currentSurahNumber = 1;
 
     async function init() {
         const savedTheme = localStorage.getItem('theme');
@@ -258,15 +274,29 @@
         }
     }
 
+    function toggleMode() {
+        if (currentMode === 'arabic') {
+            currentMode = 'translation';
+            document.getElementById('appTitle').innerText = "Kur'an-ı Kerim Meal";
+            document.getElementById('modeBtn').innerText = "‹ Arapça";
+        } else {
+            currentMode = 'arabic';
+            document.getElementById('appTitle').innerText = "Kur'an-ı Kerim";
+            document.getElementById('modeBtn').innerText = "Meal ›";
+        }
+        loadSurah(currentSurahNumber);
+    }
+
     async function loadSurah(surahNumber) {
         if (!surahNumber) return;
+        currentSurahNumber = surahNumber;
 
         const contentEl = document.getElementById('quranContent');
         const headerEl = document.getElementById('surahHeader');
         const bismillahEl = document.getElementById('bismillahHeader');
 
         contentEl.className = 'loading-spinner';
-        contentEl.innerHTML = 'Ayetler yükleniyor...';
+        contentEl.innerHTML = currentMode === 'arabic' ? 'Ayetler yükleniyor...' : 'Mealler yükleniyor...';
 
         try {
             const surahInfo = surahList.find(s => s.number == surahNumber);
@@ -283,27 +313,42 @@
                 bismillahEl.style.display = 'block';
             }
 
-            const res = await fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`);
+            // Mod'a göre doğru API endpoint'ini çağırıyoruz (Arapça veya Türkçe Meal)
+            const endpoint = currentMode === 'arabic' 
+                ? `https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`
+                : `https://api.alquran.cloud/v1/surah/${surahNumber}/tr.yazir`;
+
+            const res = await fetch(endpoint);
             const data = await res.json();
             const ayahs = data.data.ayahs;
 
             let htmlContent = '';
             
             ayahs.forEach((ayah) => {
-                let arabicText = ayah.text;
+                let text = ayah.text;
                 let ayahNum = ayah.numberInSurah;
 
-                if (surahNumber != 1 && surahNumber != 9 && ayahNum === 1) {
-                    arabicText = arabicText.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim();
+                if (currentMode === 'arabic' && surahNumber != 1 && surahNumber != 9 && ayahNum === 1) {
+                    text = text.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim();
                 }
 
-                htmlContent += `
-                    <div class="verse-box">
-                        <div class="arabic-text">
-                            ${arabicText} <span class="verse-number-badge">${ayahNum}</span>
+                if (currentMode === 'arabic') {
+                    htmlContent += `
+                        <div class="verse-box">
+                            <div class="arabic-text">
+                                ${text} <span class="verse-number-badge">${ayahNum}</span>
+                            </div>
                         </div>
-                    </div>
-                `;
+                    `;
+                } else {
+                    htmlContent += `
+                        <div class="verse-box">
+                            <div class="translation-text">
+                                <span class="verse-number-badge">${ayahNum}</span> ${text}
+                            </div>
+                        </div>
+                    `;
+                }
             });
 
             contentEl.className = ''; 
@@ -311,7 +356,7 @@
 
         } catch (err) {
             contentEl.className = 'loading-spinner';
-            contentEl.innerHTML = 'Ayetler yüklenirken hata oluştu.';
+            contentEl.innerHTML = 'İçerik yüklenirken hata oluştu.';
         }
     }
 
