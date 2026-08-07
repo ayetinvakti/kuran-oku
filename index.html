@@ -293,29 +293,21 @@
                 bismillahEl.style.display = 'block';
             }
 
-            // tr.diyanet yerine en kararlı çalışan Türkçe meal endpoint'i olan tr.yazir (Elmalılı Hamdi Yazır) kullanıyoruz
-            // Bu API yapısı sure içerisindeki ayet meallerini kusursuz ve benzersiz şekilde verir.
-            const [arabicRes, translationRes] = await Promise.all([
-                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`),
-                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/tr.yazir`)
-            ]);
+            // Tamamen bağımsız ve farklı bir veri kaynağı olan Diyanet İşleri Meali altyapısını kullanıyoruz
+            const res = await fetch(`https://api.acikkuran.com/surah/${surahNumber}`);
+            const json = await res.json();
 
-            const arabicData = await arabicRes.json();
-            const translationData = await translationRes.json();
+            if (!json.data || !json.data.verses) {
+                throw new Error('Veri alınamadı');
+            }
 
-            const arabicAyahs = arabicData.data.ayahs;
-            const translationAyahs = translationData.data.ayahs;
-
+            const verses = json.data.verses;
             let htmlContent = '';
             
-            for (let i = 0; i < arabicAyahs.length; i++) {
-                let arabicText = arabicAyahs[i].text;
-                let transText = translationAyahs[i] ? translationAyahs[i].text : 'Meal bulunamadı.';
-                let ayahNum = arabicAyahs[i].numberInSurah;
-
-                if (surahNumber != 1 && surahNumber != 9 && ayahNum === 1) {
-                    arabicText = arabicText.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim();
-                }
+            verses.forEach((verse) => {
+                let ayahNum = verse.verse_number;
+                let arabicText = verse.verse; // AcıkKuran API doğrudan orijinal hat yazımını ve mealini verir
+                let transText = verse.translation.text;
 
                 htmlContent += `
                     <div class="verse-box">
@@ -327,7 +319,7 @@
                         </div>
                     </div>
                 `;
-            }
+            });
 
             contentEl.className = ''; 
             contentEl.innerHTML = htmlContent;
