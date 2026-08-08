@@ -2,21 +2,22 @@
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kur'an-ı Kerim | Ayetin Vakti</title>
     
-    <!-- Google Fonts - Arapça Amiri Fontu -->
+    <!-- Sayfa yüklenirken beyaz ekran patlamasını ve tema gecikmesini önleyen kritik script -->
+    <script>
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-
-    <script>
-        const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (savedTheme === 'light' || (!savedTheme && !systemPrefersDark)) {
-            document.documentElement.classList.add('light-mode');
-        }
-    </script>
 
     <style>
         :root {
@@ -29,6 +30,22 @@
             --arabic-text-color: #f1f5f9;
             --transliteration-color: #38bdf8;
             --translation-color: #cbd5e1;
+            --btn-bg: rgba(255, 255, 255, 0.05);
+            --btn-hover: rgba(255, 255, 255, 0.1);
+        }
+
+        [data-theme="light"] {
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --accent-color: #059669;
+            --text-color: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --arabic-text-color: #0f172a;
+            --transliteration-color: #0284c7;
+            --translation-color: #334155;
+            --btn-bg: #f1f5f9;
+            --btn-hover: #e2e8f0;
         }
 
         * {
@@ -36,6 +53,8 @@
             margin: 0;
             padding: 0;
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            -webkit-user-select: none;
         }
 
         body {
@@ -67,22 +86,55 @@
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
             border-radius: 16px;
+            position: relative;
         }
 
-        .back-btn {
+        /* Ana ekrandakine benzer yazısız yuvarlak geri dönme butonu */
+        .home-btn {
+            background-color: var(--btn-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            gap: 6px;
-            color: var(--accent-color);
+            justify-content: center;
             text-decoration: none;
-            font-weight: 600;
-            font-size: 0.95rem;
+        }
+
+        .home-btn:hover {
+            background-color: var(--btn-hover);
         }
 
         .app-title {
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: 700;
             color: var(--text-color);
+            text-align: center;
+            flex: 1;
+        }
+
+        /* Ana ekrandakine benzer yazısız yuvarlak tema butonu */
+        .theme-icon-btn {
+            background-color: var(--btn-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            font-size: 1.1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .theme-icon-btn:hover {
+            background-color: var(--btn-hover);
         }
 
         .select-card {
@@ -156,12 +208,6 @@
             border-bottom: none;
         }
 
-        .verse-top-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
         .arabic-text {
             direction: rtl;
             font-family: 'Amiri', serif;
@@ -210,26 +256,15 @@
             color: var(--text-muted);
             font-size: 1.1rem;
         }
-
-        body.light-mode {
-            --bg-color: #f8fafc;
-            --card-bg: #ffffff;
-            --text-color: #0f172a;
-            --text-muted: #64748b;
-            --border-color: #e2e8f0;
-            --arabic-text-color: #0f172a;
-            --transliteration-color: #0284c7;
-            --translation-color: #334155;
-        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <header class="navbar">
-        <a href="../" class="back-btn">‹ Ana Sayfa</a>
+        <a href="../" class="home-btn" title="Ana Sayfa">←</a>
         <div class="app-title">Kur'an-ı Kerim Meal & Okunuş</div>
-        <div style="width: 60px;"></div> <!-- Denge için boşluk -->
+        <button class="theme-icon-btn" onclick="toggleTheme()" id="theme-btn" title="Tema Değiştir">☀️</button>
     </header>
 
     <div class="select-card">
@@ -257,12 +292,33 @@
 <script>
     let surahList = [];
 
-    async function init() {
-        const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        if (savedTheme === 'light' || (!savedTheme && !systemPrefersDark)) {
-            document.body.classList.add('light-mode');
+    function initTheme() {
+        const savedTheme = localStorage.getItem('theme') || 'dark';
+        applyTheme(savedTheme);
+    }
+
+    function toggleTheme() {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        applyTheme(isLight ? 'dark' : 'light');
+    }
+
+    function applyTheme(theme) {
+        const btn = document.getElementById('theme-btn');
+        if (!btn) return;
+        
+        if (theme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            btn.innerHTML = '🌙'; 
+            localStorage.setItem('theme', 'light');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            btn.innerHTML = '☀️'; 
+            localStorage.setItem('theme', 'dark');
         }
+    }
+
+    async function init() {
+        initTheme();
 
         try {
             const res = await fetch('https://api.alquran.cloud/v1/surah');
@@ -310,7 +366,6 @@
                 bismillahEl.style.display = 'block';
             }
 
-            // Aynı anda hem Arapça, hem Türkçe Okunuş, hem de Türkçe Meal verilerini çekiyoruz
             const [resArabic, resTrans, resTransl] = await Promise.all([
                 fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`),
                 fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/tr.transliteration`),
