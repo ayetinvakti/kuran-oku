@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kur'an-ı Kerim | Ayetin Vakti</title>
     
-    <!-- Sayfa yüklenirken beyaz ekran patlamasını ve tema gecikmesini önleyen kritik script -->
     <script>
         (function() {
             const savedTheme = localStorage.getItem('theme');
@@ -145,7 +144,6 @@
             gap: 10px;
         }
 
-        /* Arama Kutusu Tasarımı */
         .search-input {
             width: 100%;
             padding: 12px 16px;
@@ -222,6 +220,13 @@
             border-bottom: none;
         }
 
+        .verse-box.highlight {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px dashed var(--accent-color);
+        }
+
         .arabic-text {
             direction: rtl;
             font-family: 'Amiri', serif;
@@ -282,8 +287,7 @@
     </header>
 
     <div class="select-card">
-        <!-- Arama Kutusu Eklendi -->
-        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Sure ara (Örn: İnşirah, Fatiha)..." oninput="filterSurahs()">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Sure veya Ayet ara (İnşirah, Ayetel Kürsi...)" oninput="filterSurahs()">
         
         <select id="surahSelect" class="surah-select" onchange="loadSurah(this.value)">
             <option value="">Sure Seçiniz...</option>
@@ -308,6 +312,21 @@
 
 <script>
     let surahList = [];
+
+    // Türkçe arama kelimelerini doğru sure numaralarına bağlayan akıllı sözlük
+    const customKeywords = {
+        "insirah": { surah: 94, name: "İnşirah Suresi" },
+        "srah": { surah: 94, name: "İnşirah Suresi" },
+        "fatiha": { surah: 1, name: "Fatiha Suresi" },
+        "ayetel kursi": { surah: 2, ayah: 255, name: "Bakara Suresi (Âyetel Kürsî)" },
+        "kursi": { surah: 2, ayah: 255, name: "Bakara Suresi (Âyetel Kürsî)" },
+        "amenerrasulu": { surah: 2, startAyah: 285, name: "Bakara Suresi (Amenerrasulü)" },
+        "bakara": { surah: 2, name: "Bakara Suresi" },
+        "ihlas": { surah: 112, name: "İhlas Suresi" },
+        "felak": { surah: 113, name: "Felak Suresi" },
+        "nas": { surah: 114, name: "Nas Suresi" },
+        "ayetelkursi": { surah: 2, ayah: 255, name: "Bakara Suresi (Âyetel Kürsî)" }
+    };
 
     function initTheme() {
         const savedTheme = localStorage.getItem('theme') || 'dark';
@@ -366,14 +385,37 @@
         }
     }
 
-    // Arama Filtreleme Fonksiyonu
+    // Türkçe karakterleri temizleme ve arama fonksiyonu
+    function turkishNormalize(str) {
+        return str.toLowerCase()
+            .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
+            .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c');
+    }
+
     function filterSurahs() {
-        const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
-        
+        const rawInput = document.getElementById('searchInput').value;
+        const keyword = turkishNormalize(rawInput.trim());
+
+        if (!keyword) {
+            renderSurahOptions(surahList);
+            return;
+        }
+
+        // Özel anahtar kelime kontrolü (Ayetel Kürsi, Amenerrasulü, İnşirah vb.)
+        for (let key in customKeywords) {
+            if (keyword.includes(key)) {
+                const match = customKeywords[key];
+                document.getElementById('surahSelect').value = match.surah;
+                loadSurah(match.surah, match.ayah, match.startAyah);
+                return;
+            }
+        }
+
+        // Normal filtreleme
         const filtered = surahList.filter(surah => {
-            const nameTr = surah.englishName.toLowerCase();
-            const nameAr = surah.name.toLowerCase();
-            const trans = surah.englishNameTranslation.toLowerCase();
+            const nameTr = turkishNormalize(surah.englishName);
+            const nameAr = turkishNormalize(surah.name);
+            const trans = turkishNormalize(surah.englishNameTranslation);
             const num = surah.number.toString();
 
             return nameTr.includes(keyword) || nameAr.includes(keyword) || trans.includes(keyword) || num === keyword;
@@ -381,14 +423,13 @@
 
         renderSurahOptions(filtered);
 
-        // Eğer arama sonucu tek bir sure kaldıysa otomatik seçebiliriz ya da ilkini seçtirebiliriz
-        if (filtered.length > 0 && keyword.length > 2) {
+        if (filtered.length > 0 && keyword.length >= 3) {
             document.getElementById('surahSelect').value = filtered[0].number;
             loadSurah(filtered[0].number);
         }
     }
 
-    async function loadSurah(surahNumber) {
+    async function loadSurah(surahNumber, targetAyah = null, startAyah = null) {
         if (!surahNumber) return;
 
         const contentEl = document.getElementById('quranContent');
@@ -435,12 +476,18 @@
                 let translText = ayahsTransl[i].text;
                 let ayahNum = ayahsArabic[i].numberInSurah;
 
+                // Eğer özel bir ayet (Örn: Ayetel Kürsi 255 veya Amenerrasulü 285+) arandıysa sadece onları gösterelim veya öne çıkaralım
+                if (targetAyah && ayahNum !== targetAyah) continue;
+                if (startAyah && ayahNum < startAyah) continue;
+
                 if (surahNumber != 1 && surahNumber != 9 && ayahNum === 1) {
                     arabicText = arabicText.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim();
                 }
 
+                const isHighlight = (targetAyah && ayahNum === targetAyah) || (startAyah && ayahNum >= startAyah);
+
                 htmlContent += `
-                    <div class="verse-box">
+                    <div class="verse-box ${isHighlight ? 'highlight' : ''}">
                         <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
                             <div class="arabic-text">${arabicText}</div>
                             <span class="verse-number-badge">${ayahNum}</span>
@@ -453,6 +500,16 @@
 
             contentEl.className = ''; 
             contentEl.innerHTML = htmlContent;
+
+            // Eğer özel ayet seçildiyse sayfayı o ayete kaydıralım
+            if (targetAyah || startAyah) {
+                setTimeout(() => {
+                    const highlighted = document.querySelector('.verse-box.highlight');
+                    if (highlighted) {
+                        highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
+            }
 
         } catch (err) {
             contentEl.className = 'loading-spinner';
