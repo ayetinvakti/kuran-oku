@@ -89,7 +89,6 @@
             position: relative;
         }
 
-        /* Ana ekrandakine benzer yazısız yuvarlak geri dönme butonu */
         .home-btn {
             background-color: var(--btn-bg);
             border: 1px solid var(--border-color);
@@ -118,7 +117,6 @@
             flex: 1;
         }
 
-        /* Ana ekrandakine benzer yazısız yuvarlak tema butonu */
         .theme-icon-btn {
             background-color: var(--btn-bg);
             border: 1px solid var(--border-color);
@@ -143,8 +141,24 @@
             border-radius: 16px;
             padding: 14px;
             display: flex;
+            flex-direction: column;
             gap: 10px;
-            align-items: center;
+        }
+
+        /* Arama Kutusu Tasarımı */
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border-radius: 12px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 0.95rem;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent-color);
         }
 
         .surah-select {
@@ -268,6 +282,9 @@
     </header>
 
     <div class="select-card">
+        <!-- Arama Kutusu Eklendi -->
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Sure ara (Örn: İnşirah, Fatiha)..." oninput="filterSurahs()">
+        
         <select id="surahSelect" class="surah-select" onchange="loadSurah(this.value)">
             <option value="">Sure Seçiniz...</option>
         </select>
@@ -325,19 +342,49 @@
             const data = await res.json();
             surahList = data.data;
 
-            const selectEl = document.getElementById('surahSelect');
-            selectEl.innerHTML = '';
-            
-            surahList.forEach(surah => {
-                const option = document.createElement('option');
-                option.value = surah.number;
-                option.textContent = `${surah.number}. ${surah.englishName} (${surah.name}) - ${surah.englishNameTranslation}`;
-                selectEl.appendChild(option);
-            });
-
+            renderSurahOptions(surahList);
             loadSurah(1);
         } catch (err) {
             document.getElementById('quranContent').innerHTML = 'Sure listesi yüklenirken hata oluştu. Lütfen internet bağlantınızı kontrol edin.';
+        }
+    }
+
+    function renderSurahOptions(list) {
+        const selectEl = document.getElementById('surahSelect');
+        const currentSelected = selectEl.value;
+        selectEl.innerHTML = '';
+        
+        list.forEach(surah => {
+            const option = document.createElement('option');
+            option.value = surah.number;
+            option.textContent = `${surah.number}. ${surah.englishName} (${surah.name}) - ${surah.englishNameTranslation}`;
+            selectEl.appendChild(option);
+        });
+
+        if (currentSelected) {
+            selectEl.value = currentSelected;
+        }
+    }
+
+    // Arama Filtreleme Fonksiyonu
+    function filterSurahs() {
+        const keyword = document.getElementById('searchInput').value.toLowerCase().trim();
+        
+        const filtered = surahList.filter(surah => {
+            const nameTr = surah.englishName.toLowerCase();
+            const nameAr = surah.name.toLowerCase();
+            const trans = surah.englishNameTranslation.toLowerCase();
+            const num = surah.number.toString();
+
+            return nameTr.includes(keyword) || nameAr.includes(keyword) || trans.includes(keyword) || num === keyword;
+        });
+
+        renderSurahOptions(filtered);
+
+        // Eğer arama sonucu tek bir sure kaldıysa otomatik seçebiliriz ya da ilkini seçtirebiliriz
+        if (filtered.length > 0 && keyword.length > 2) {
+            document.getElementById('surahSelect').value = filtered[0].number;
+            loadSurah(filtered[0].number);
         }
     }
 
