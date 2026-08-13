@@ -313,7 +313,6 @@
 <script>
     let surahList = [];
 
-    // Tüm Türkçe sure isimlerini ve özel ayet/duaları tam eşleyen kapsamlı sözlük
     const customKeywords = {
         "fatiha": 1, "bakara": 2, "ali imran": 3, "nisa": 4, "maide": 5, "enam": 6, "araf": 7, "enfal": 8, "tevbe": 9, "yunus": 10,
         "hud": 11, "yusuf": 12, "rad": 13, "ibrahim": 14, "hicr": 15, "nahl": 16, "isra": 17, "kehf": 18, "meryem": 19, "taha": 20,
@@ -328,7 +327,6 @@
         "karia": 101, "tekasur": 102, "asr": 103, "humeze": 104, "fil": 105, "kureys": 106, "maun": 107, "kevser": 108, "kafirun": 109, "nasr": 110,
         "tebbet": 111, "ihlas": 112, "felak": 113, "nas": 114,
         
-        // Özel Ayetler / Dualar
         "ayetel kursi": { surah: 2, ayah: 255 },
         "ayetelkursi": { surah: 2, ayah: 255 },
         "kursi": { surah: 2, ayah: 255 },
@@ -408,7 +406,6 @@
             return;
         }
 
-        // Özel anahtar kelime ve Türkçe sure isimleri kontrolü
         for (let key in customKeywords) {
             if (keyword.includes(key)) {
                 const match = customKeywords[key];
@@ -424,7 +421,6 @@
             }
         }
 
-        // Standart arama (İngilizce isim, Arapça isim veya numara)
         const filtered = surahList.filter(surah => {
             const nameTr = turkishNormalize(surah.englishName);
             const nameAr = turkishNormalize(surah.name);
@@ -522,9 +518,6 @@
                 }, 300);
             }
 
-        } kut {
-            contentEl.className = 'loading-spinner';
-            contentEl.innerHTML = 'İçerik yüklenirken hata oluştu.';
         } catch (err) {
             contentEl.className = 'loading-spinner';
             contentEl.innerHTML = 'İçerik yüklenirken hata oluştu.';
