@@ -411,7 +411,8 @@
                 const match = customKeywords[key];
                 if (typeof match === 'object') {
                     document.getElementById('surahSelect').value = match.surah;
-                    loadSurah(match.surah, match.ayah, match.startAyah);
+                    // DÜZELTME BURADAYDI: Parametreler doğru sırayla iletiliyor
+                    loadSurah(match.surah, match.ayah || null, match.startAyah || null);
                     return;
                 } else {
                     document.getElementById('surahSelect').value = match;
