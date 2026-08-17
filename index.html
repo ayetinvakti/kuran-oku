@@ -1,19 +1,41 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Kur'an-ı Kerim | Ayetin Vakti</title>
-    
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
     <script>
-        (function() {
-            const savedTheme = localStorage.getItem('theme');
-            if (savedTheme === 'light') {
-                document.documentElement.setAttribute('data-theme', 'light');
-            }
-        })();
+        // Tema, Özel Renk Paleti ve Dil Kontrolü (Sayfa yüklenmeden önce çalışır, titremeyi önler)
+        const savedTheme = localStorage.getItem('theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (savedTheme === 'light' || (!savedTheme && !systemPrefersDark)) {
+            document.documentElement.setAttribute('data-theme', 'light');
+        }
+
+        const savedAccent = localStorage.getItem('custom_accent');
+        const savedBg = localStorage.getItem('custom_bg');
+        const savedText = localStorage.getItem('custom_text');
+
+        if (savedAccent) document.documentElement.style.setProperty('--accent-color', savedAccent);
+        if (savedBg) {
+            document.documentElement.style.setProperty('--bg-color', savedBg);
+            document.documentElement.style.setProperty('--card-bg', savedBg);
+        }
+        if (savedText) document.documentElement.style.setProperty('--text-color', savedText);
+
+        const currentLang = localStorage.getItem('user_lang') || 'tr';
+        if (currentLang === 'ar') {
+            document.documentElement.setAttribute('dir', 'rtl');
+        } else {
+            document.documentElement.setAttribute('dir', 'ltr');
+        }
     </script>
 
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title data-i18n="page_title">Kur'an-ı Kerim | Ayetin Vakti</title>
+    
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
@@ -246,6 +268,12 @@
             font-weight: 500;
         }
 
+        [dir="rtl"] .transliteration-text,
+        [dir="rtl"] .translation-text {
+            direction: ltr;
+            text-align: right;
+        }
+
         .translation-text {
             direction: ltr;
             font-size: 1rem;
@@ -282,15 +310,15 @@
 <div class="container">
     <header class="navbar">
         <a href="../" class="home-btn" title="Ana Sayfa">←</a>
-        <div class="app-title">Kur'an-ı Kerim Meal & Okunuş</div>
+        <div class="app-title" data-i18n="app_title">Kur'an-ı Kerim Meal & Okunuş</div>
         <button class="theme-icon-btn" onclick="toggleTheme()" id="theme-btn" title="Tema Değiştir">☀️</button>
     </header>
 
     <div class="select-card">
-        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Sure veya Ayet ara (Örn: İnşirah, Ayetel Kürsi...)" oninput="filterSurahs()">
+        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Sure veya Ayet ara (Örn: İnşirah, Ayetel Kürsi...)" oninput="filterSurahs()" data-i18n-placeholder="search_placeholder">
         
         <select id="surahSelect" class="surah-select" onchange="loadSurah(this.value)">
-            <option value="">Sure Seçiniz...</option>
+            <option value="" data-i18n="select_default">Sure Seçiniz...</option>
         </select>
     </div>
 
@@ -304,13 +332,65 @@
             بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
         </div>
 
-        <div id="quranContent" class="loading-spinner">
+        <div id="quranContent" class="loading-spinner" data-i18n="loading_surah">
             Sure yükleniyor...
         </div>
     </div>
 </div>
 
 <script>
+    // Dil Sözlüğü
+    const translations = {
+        tr: {
+            page_title: "Kur'an-ı Kerim | Ayetin Vakti",
+            app_title: "Kur'an-ı Kerim Meal & Okunuş",
+            search_placeholder: "🔍 Sure veya Ayet ara (Örn: İnşirah, Ayetel Kürsi...)",
+            select_default: "Sure Seçiniz...",
+            loading_surah: "Sure yükleniyor...",
+            loading_all: "Ayetler, okunuşlar ve mealler yükleniyor...",
+            err_list: "Sure listesi yüklenirken hata oluştu. Lütfen internet bağlantınızı kontrol edin.",
+            err_content: "İçerik yüklenirken hata oluştu.",
+            transliteration_label: "Okunuş:",
+            translation_label: "Meal:",
+            meccan: "Mekke",
+            medinan: "Medine",
+            ayah_text: "Ayet"
+        },
+        en: {
+            page_title: "Holy Quran | Ayetin Vakti",
+            app_title: "Quran Translation & Transliteration",
+            search_placeholder: "🔍 Search Surah or Ayah (e.g. Inshirah, Ayatul Kursi...)",
+            select_default: "Select Surah...",
+            loading_surah: "Loading Surah...",
+            loading_all: "Loading verses, transliterations and translations...",
+            err_list: "Error loading surah list. Please check your internet connection.",
+            err_content: "Error loading content.",
+            transliteration_label: "Transliteration:",
+            translation_label: "Translation:",
+            meccan: "Meccan",
+            medinan: "Medinan",
+            ayah_text: "Ayahs"
+        },
+        ar: {
+            page_title: "القرآن الكريم | آية الوقت",
+            app_title: "القرآن الكريم مع التفسير والترجمة",
+            search_placeholder: "🔍 ابحث عن سورة أو آية...",
+            select_default: "اختر السورة...",
+            loading_surah: "جاري تحميل السورة...",
+            loading_all: "جاري تحميل الآيات والقراءات والمعاني...",
+            err_list: "حدث خطأ أثناء تحميل قائمة السور. يرجى التحقق من اتصالك بالإنترنت.",
+            err_content: "حدث خطأ أثناء تحميل المحتوى.",
+            transliteration_label: "القراءة:",
+            translation_label: "التفسير:",
+            meccan: "مكية",
+            medinan: "مدنية",
+            ayah_text: "آيات"
+        }
+    };
+
+    const activeLang = localStorage.getItem('user_lang') || 'tr';
+    const t = translations[activeLang] || translations['tr'];
+
     let surahList = [];
 
     const customKeywords = {
@@ -362,6 +442,19 @@
     async function init() {
         initTheme();
 
+        // Statik metinleri dile göre yerleştir
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (t[key]) {
+                if (el.tagName === 'TITLE') document.title = t[key];
+                else el.textContent = t[key];
+            }
+        });
+        document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+            const key = el.getAttribute('data-i18n-placeholder');
+            if (t[key]) el.placeholder = t[key];
+        });
+
         try {
             const res = await fetch('https://api.alquran.cloud/v1/surah');
             const data = await res.json();
@@ -370,14 +463,14 @@
             renderSurahOptions(surahList);
             loadSurah(1);
         } catch (err) {
-            document.getElementById('quranContent').innerHTML = 'Sure listesi yüklenirken hata oluştu. Lütfen internet bağlantınızı kontrol edin.';
+            document.getElementById('quranContent').innerHTML = t.err_list;
         }
     }
 
     function renderSurahOptions(list) {
         const selectEl = document.getElementById('surahSelect');
         const currentSelected = selectEl.value;
-        selectEl.innerHTML = '';
+        selectEl.innerHTML = `<option value="">${t.select_default}</option>`;
         
         list.forEach(surah => {
             const option = document.createElement('option');
@@ -411,7 +504,6 @@
                 const match = customKeywords[key];
                 if (typeof match === 'object') {
                     document.getElementById('surahSelect').value = match.surah;
-                    // DÜZELTME BURADAYDI: Parametreler doğru sırayla iletiliyor
                     loadSurah(match.surah, match.ayah || null, match.startAyah || null);
                     return;
                 } else {
@@ -447,15 +539,16 @@
         const bismillahEl = document.getElementById('bismillahHeader');
 
         contentEl.className = 'loading-spinner';
-        contentEl.innerHTML = 'Ayetler, okunuşlar ve mealler yükleniyor...';
+        contentEl.innerHTML = t.loading_all;
 
         try {
             const surahInfo = surahList.find(s => s.number == surahNumber);
             
             if (surahInfo) {
                 headerEl.style.display = 'block';
+                const revType = surahInfo.revelationType === 'Meccan' ? t.meccan : t.medinan;
                 document.getElementById('surahTitle').innerText = `${surahInfo.number}. ${surahInfo.englishName} (${surahInfo.name})`;
-                document.getElementById('surahMeta').innerText = `${surahInfo.numberOfAyahs} Ayet • ${surahInfo.revelationType === 'Meccan' ? 'Mekke' : 'Medine'}`;
+                document.getElementById('surahMeta').innerText = `${surahInfo.numberOfAyahs} ${t.ayah_text} • ${revType}`;
             }
 
             if (parseInt(surahNumber) === 9 || parseInt(surahNumber) === 1) {
@@ -501,8 +594,8 @@
                             <div class="arabic-text">${arabicText}</div>
                             <span class="verse-number-badge">${ayahNum}</span>
                         </div>
-                        <div class="transliteration-text"><strong>Okunuş:</strong> ${transText}</div>
-                        <div class="translation-text"><strong>Meal:</strong> ${translText}</div>
+                        <div class="transliteration-text"><strong>${t.transliteration_label}</strong> ${transText}</div>
+                        <div class="translation-text"><strong>${t.translation_label}</strong> ${translText}</div>
                     </div>
                 `;
             }
@@ -521,7 +614,7 @@
 
         } catch (err) {
             contentEl.className = 'loading-spinner';
-            contentEl.innerHTML = 'İçerik yüklenirken hata oluştu.';
+            contentEl.innerHTML = t.err_content;
         }
     }
 
