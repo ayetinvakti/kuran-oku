@@ -223,20 +223,22 @@
             padding-top: 10px;
             margin-top: 2px;
             font-size: 0.9rem;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .goal-buttons {
             display: flex;
-            gap: 6px;
+            gap: 5px;
         }
 
         .goal-btn {
             background-color: var(--btn-bg);
             border: 1px solid var(--border-color);
             color: var(--text-color);
-            padding: 4px 10px;
+            padding: 4px 8px;
             border-radius: 8px;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             font-weight: 600;
             cursor: pointer;
         }
@@ -410,9 +412,11 @@
         <div class="daily-goal-row">
             <span id="dailyGoalText">Bugün: 0 sayfa okundu</span>
             <div class="goal-buttons">
-                <button class="goal-btn" onclick="addDailyPages(1)">+1 Sayfa</button>
-                <button class="goal-btn" onclick="addDailyPages(5)">+5 Sayfa</button>
-                <button class="goal-btn" onclick="resetDailyPages()" title="Sıfırla">🔄</button>
+                <button class="goal-btn" onclick="addPages(-5)" title="5 Sayfa Geri Al">-5</button>
+                <button class="goal-btn" onclick="addPages(-1)" title="1 Sayfa Geri Al">-1</button>
+                <button class="goal-btn" onclick="addPages(1)">+1</button>
+                <button class="goal-btn" onclick="addPages(5)">+5</button>
+                <button class="goal-btn" onclick="resetHatim()" title="Hatmi Sıfırla">🔄</button>
             </div>
         </div>
     </div>
@@ -557,8 +561,8 @@
         const dailyPages = parseInt(localStorage.getItem('hatim_daily_pages')) || 0;
         const lastSurahName = localStorage.getItem('hatim_last_surah') || (activeLang === 'en' ? 'Surah Fatiha' : 'Fatiha Suresi');
 
-        const maxPages = 604; // Kur'an-ı Kerim standart sayfa sayısı
-        const percentage = Math.min(100, ((totalPages / maxPages) * 100)).toFixed(1);
+        const maxPages = 604;
+        const percentage = Math.min(100, Math.max(0, ((totalPages / maxPages) * 100))).toFixed(1);
 
         document.getElementById('hatimPercentage').innerText = `%${percentage}`;
         document.getElementById('hatimProgressBar').style.width = `${percentage}%`;
@@ -567,21 +571,24 @@
         document.getElementById('dailyGoalText').innerText = `${t.daily_read} ${dailyPages} sayfa okundu`;
     }
 
-    function addDailyPages(amount) {
+    function addPages(amount) {
         let totalPages = parseInt(localStorage.getItem('hatim_total_pages')) || 0;
         let dailyPages = parseInt(localStorage.getItem('hatim_daily_pages')) || 0;
 
-        totalPages = Math.min(604, totalPages + amount);
-        dailyPages += amount;
+        totalPages = Math.min(604, Math.max(0, totalPages + amount));
+        dailyPages = Math.max(0, dailyPages + amount);
 
         localStorage.setItem('hatim_total_pages', totalPages);
         localStorage.setItem('hatim_daily_pages', dailyPages);
         updateHatimUI();
     }
 
-    function resetDailyPages() {
-        localStorage.setItem('hatim_daily_pages', '0');
-        updateHatimUI();
+    function resetHatim() {
+        if (confirm("Hatim ilerlemeniz sıfırlansın mı?")) {
+            localStorage.setItem('hatim_total_pages', '0');
+            localStorage.setItem('hatim_daily_pages', '0');
+            updateHatimUI();
+        }
     }
 
     async function init() {
@@ -607,7 +614,11 @@
             surahList = data.data;
 
             renderSurahOptions(surahList);
-            loadSurah(1);
+
+            // Son kalınan sureyi hafızadan al, yoksa 1 (Fatiha) ile başla
+            const lastSurahNum = localStorage.getItem('last_surah_number') || 1;
+            document.getElementById('surahSelect').value = lastSurahNum;
+            loadSurah(lastSurahNum);
         } catch (err) {
             document.getElementById('quranContent').innerHTML = t.err_list;
         }
@@ -679,6 +690,10 @@
 
     async function loadSurah(surahNumber, targetAyah = null, startAyah = null) {
         if (!surahNumber) return;
+
+        // Seçimi ve son kaldığı yeri hafızaya kaydet
+        localStorage.setItem('last_surah_number', surahNumber);
+        document.getElementById('surahSelect').value = surahNumber;
 
         const contentEl = document.getElementById('quranContent');
         const headerEl = document.getElementById('surahHeader');
