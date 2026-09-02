@@ -6,6 +6,7 @@
     <meta http-equiv="Expires" content="0">
 
     <script>
+        // Tema, Özel Renk Paleti ve Dil Kontrolü (Sayfa yüklenmeden önce çalışır, titremeyi önler)
         const savedTheme = localStorage.getItem('theme');
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (savedTheme === 'light' || (!savedTheme && !systemPrefersDark)) {
@@ -166,6 +167,7 @@
             gap: 10px;
         }
 
+        /* Hatim & İlerleme Kartı Stilleri */
         .tracker-card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -445,6 +447,7 @@
 </div>
 
 <script>
+    // Dil Sözlüğü Güncellendi (Hatim ve Takip Alanları Eklendi)
     const translations = {
         tr: {
             page_title: "Kur'an-ı Kerim | Ayetin Vakti",
@@ -578,6 +581,7 @@
         updateThemeButton(isLight);
     }
 
+    // --- HATİM VE İLERLEME YÖNETİMİ ---
     function updateHatimUI() {
         const totalPages = parseInt(localStorage.getItem('hatim_total_pages')) || 0;
         const dailyPages = parseInt(localStorage.getItem('hatim_daily_pages')) || 0;
@@ -618,6 +622,7 @@
     async function init() {
         initTheme();
 
+        // Statik metinleri ve title/placeholder/title-attribute'ları dile göre yerleştir
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
             if (t[key]) {
@@ -643,6 +648,7 @@
 
             renderSurahOptions(surahList);
 
+            // Son kalınan sureyi hafızadan al, yoksa 1 (Fatiha) ile başla
             const lastSurahNum = localStorage.getItem('last_surah_number') || 1;
             document.getElementById('surahSelect').value = lastSurahNum;
             loadSurah(lastSurahNum);
@@ -660,6 +666,7 @@
             const option = document.createElement('option');
             option.value = surah.number;
             
+            // Dile göre sure listesi gösterim düzeni
             if (activeLang === 'ar') {
                 option.textContent = `${surah.number}. ${surah.name} (${surah.englishName})`;
             } else {
