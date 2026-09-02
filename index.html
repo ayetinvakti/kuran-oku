@@ -167,6 +167,49 @@
             gap: 10px;
         }
 
+        /* Sesli Dinleme Kartı Stilleri */
+        .audio-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .audio-controls-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .reciter-select {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 0.9rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .audio-player-container {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        audio {
+            width: 100%;
+            height: 40px;
+            border-radius: 10px;
+            outline: none;
+        }
+
         /* Hatim & İlerleme Kartı Stilleri */
         .tracker-card {
             background-color: var(--card-bg);
@@ -422,6 +465,27 @@
         </div>
     </div>
 
+    <!-- SESLİ KUR'AN DİNLEME PANELİ -->
+    <div class="audio-card">
+        <div class="tracker-header">
+            <div class="tracker-title"><span data-i18n="audio_title">🎧 Sesli Kur'an Dinleme</span></div>
+        </div>
+        <div class="audio-controls-row">
+            <select id="reciterSelect" class="reciter-select" onchange="updateAudioSource()">
+                <option value="ar.alafasy">Mishary Rashid Alafasy</option>
+                <option value="ar.abdulbasit">Abdulbasit Abdussamed</option>
+                <option value="ar.minshawi">Mohamed Siddiq el-Minshawi</option>
+                <option value="ar.hudhaify">Ali Al-Hudhaify</option>
+                <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
+            </select>
+        </div>
+        <div class="audio-player-container">
+            <audio id="audioPlayer" controls preload="none">
+                Tarayıcınız ses oynatmayı desteklemiyor.
+            </audio>
+        </div>
+    </div>
+
     <div class="select-card">
         <input type="text" id="searchInput" class="search-input" placeholder="🔍 Sure veya Ayet ara (Örn: İnşirah, Ayetel Kürsi...)" oninput="filterSurahs()" data-i18n-placeholder="search_placeholder">
         
@@ -447,7 +511,7 @@
 </div>
 
 <script>
-    // Dil Sözlüğü Güncellendi (Hatim ve Takip Alanları Eklendi)
+    // Dil Sözlüğü Güncellendi (Sesli Dinleme Alanı Eklendi)
     const translations = {
         tr: {
             page_title: "Kur'an-ı Kerim | Ayetin Vakti",
@@ -467,6 +531,7 @@
             total_pages: "Toplam:",
             daily_read: "Bugün:",
             hatim_title: "📖 Hatim & İlerleme Takibi",
+            audio_title: "🎧 Sesli Kur'an Dinleme",
             page_unit: "Sayfa",
             confirm_reset: "Hatim ilerlemeniz sıfırlansın mı?",
             back_5: "5 Sayfa Geri Al",
@@ -491,6 +556,7 @@
             total_pages: "Total:",
             daily_read: "Today:",
             hatim_title: "📖 Khatm & Progress Tracker",
+            audio_title: "🎧 Audio Quran Recitation",
             page_unit: "Pages",
             confirm_reset: "Do you want to reset your progress?",
             back_5: "Undo 5 Pages",
@@ -515,6 +581,7 @@
             total_pages: "المجموع:",
             daily_read: "اليوم:",
             hatim_title: "📖 تتبع ختم القرآن",
+            audio_title: "🎧 الاستماع للقرآن الكريم",
             page_unit: "صفحة",
             confirm_reset: "هل تريد إعادة تعيين تقدم الختمة؟",
             back_5: "تراجع 5 صفحات",
@@ -617,6 +684,25 @@
             localStorage.setItem('hatim_daily_pages', '0');
             updateHatimUI();
         }
+    }
+
+    // --- SESLİ DİNLEME YÖNETİMİ ---
+    function updateAudioSource() {
+        const surahSelect = document.getElementById('surahSelect');
+        const reciterSelect = document.getElementById('reciterSelect');
+        const audioPlayer = document.getElementById('audioPlayer');
+
+        const surahNum = surahSelect.value;
+        const reciterEdition = reciterSelect.value;
+
+        if (!surahNum) return;
+
+        // AlQuran Cloud ses endpoint yapısı: https://cdn.islamic.network/quran/audio/128/ar.alafasy/1.mp3 (1'den 114'e kadar)
+        // Alternatif API source mapping: her surenin tam ses dosyası global CDN üzerinden çekilebilir.
+        // Standart Sure Ses API URL Formatı:
+        const audioUrl = `https://cdn.islamic.network/quran/surah-audio/128/${reciterEdition}/${surahNum}.mp3`;
+        
+        audioPlayer.src = audioUrl;
     }
 
     async function init() {
@@ -733,6 +819,9 @@
 
         localStorage.setItem('last_surah_number', surahNumber);
         document.getElementById('surahSelect').value = surahNumber;
+
+        // Ses oynatıcısını güncellenen sureye göre tetikle
+        updateAudioSource();
 
         const contentEl = document.getElementById('quranContent');
         const headerEl = document.getElementById('surahHeader');
