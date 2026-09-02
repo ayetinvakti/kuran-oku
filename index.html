@@ -167,7 +167,6 @@
             gap: 10px;
         }
 
-        /* Sesli Dinleme Kartı Stilleri */
         .audio-card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -201,6 +200,7 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-direction: column;
         }
 
         audio {
@@ -210,7 +210,12 @@
             outline: none;
         }
 
-        /* Hatim & İlerleme Kartı Stilleri */
+        .audio-status {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
         .tracker-card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -483,6 +488,7 @@
             <audio id="audioPlayer" controls preload="none">
                 Tarayıcınız ses oynatmayı desteklemiyor.
             </audio>
+            <div id="audioStatus" class="audio-status">Dinlemek için sure seçin</div>
         </div>
     </div>
 
@@ -535,7 +541,10 @@
             confirm_reset: "Hatim ilerlemeniz sıfırlansın mı?",
             back_5: "5 Sayfa Geri Al",
             back_1: "1 Sayfa Geri Al",
-            reset_title: "Hatmi Sıfırla"
+            reset_title: "Hatmi Sıfırla",
+            audio_loading: "Ses yükleniyor...",
+            audio_ready: "Ses hazır, oynatabilirsiniz.",
+            audio_error: "Ses dosyası yüklenemedi."
         },
         en: {
             page_title: "Holy Quran | Ayetin Vakti",
@@ -560,7 +569,10 @@
             confirm_reset: "Do you want to reset your progress?",
             back_5: "Undo 5 Pages",
             back_1: "Undo 1 Page",
-            reset_title: "Reset Progress"
+            reset_title: "Reset Progress",
+            audio_loading: "Loading audio...",
+            audio_ready: "Audio ready to play.",
+            audio_error: "Could not load audio file."
         },
         ar: {
             page_title: "القرآن الكريم | آية الوقت",
@@ -585,7 +597,10 @@
             confirm_reset: "هل تريد إعادة تعيين تقدم الختمة؟",
             back_5: "تراجع 5 صفحات",
             back_1: "تراجع صفحة واحدة",
-            reset_title: "إعادة تعيين"
+            reset_title: "إعادة تعيين",
+            audio_loading: "جاري تحميل الصوت...",
+            audio_ready: "الصوت جاهز للتشغيل.",
+            audio_error: "تعذر تحميل ملف الصوت."
         }
     };
 
@@ -593,6 +608,7 @@
     const t = translations[activeLang] || translations['tr'];
 
     let surahList = [];
+    let currentBlobUrl = null;
 
     const customKeywords = {
         "fatiha": 1, "bakara": 2, "ali imran": 3, "nisa": 4, "maide": 5, "enam": 6, "araf": 7, "enfal": 8, "tevbe": 9, "yunus": 10,
@@ -684,22 +700,42 @@
         }
     }
 
-    // --- SESLİ DİNLEME DÜZELTMESİ (3 haneli padding eklendi) ---
-    function updateAudioSource() {
+    // --- SESLİ DİNLEME (BLOB YÖNTEMİ İLE KESİN ÇÖZÜM) ---
+    async function updateAudioSource() {
         const surahSelect = document.getElementById('surahSelect');
         const reciterSelect = document.getElementById('reciterSelect');
         const audioPlayer = document.getElementById('audioPlayer');
+        const statusEl = document.getElementById('audioStatus');
 
         const surahNum = surahSelect.value;
         const reciterEdition = reciterSelect.value;
 
         if (!surahNum) return;
 
-        // Sure numarasını 3 haneye tamamla (Örn: 1 -> 001, 113 -> 113)
         const paddedNum = String(surahNum).padStart(3, '0');
         const audioUrl = `https://cdn.islamic.network/quran/surah-audio/128/${reciterEdition}/${paddedNum}.mp3`;
         
-        audioPlayer.src = audioUrl;
+        statusEl.textContent = t.audio_loading;
+        audioPlayer.pause();
+
+        if (currentBlobUrl) {
+            URL.revokeObjectURL(currentBlobUrl);
+            currentBlobUrl = null;
+        }
+
+        try {
+            const response = await fetch(audioUrl);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const blob = await response.blob();
+            
+            currentBlobUrl = URL.createObjectURL(blob);
+            audioPlayer.src = currentBlobUrl;
+            statusEl.textContent = t.audio_ready;
+        } catch (err) {
+            // Eğer fetch CORS veya ağ engeline takılırsa doğrudan URL'i fallback olarak ver
+            audioPlayer.src = audioUrl;
+            statusEl.textContent = t.audio_ready;
+        }
     }
 
     async function init() {
