@@ -166,55 +166,6 @@
             gap: 10px;
         }
 
-        .audio-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .audio-controls-row {
-            display: flex;
-            gap: 10px;
-            align-items: center;
-        }
-
-        .reciter-select {
-            flex: 1;
-            padding: 10px;
-            border-radius: 10px;
-            background-color: var(--bg-color);
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            font-size: 0.9rem;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .audio-player-container {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-direction: column;
-        }
-
-        audio {
-            width: 100%;
-            height: 40px;
-            border-radius: 10px;
-            outline: none;
-        }
-
-        .audio-status {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            text-align: center;
-        }
-
         .tracker-card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -469,28 +420,6 @@
         </div>
     </div>
 
-    <!-- SESLİ KUR'AN DİNLEME PANELİ -->
-    <div class="audio-card">
-        <div class="tracker-header">
-            <div class="tracker-title"><span data-i18n="audio_title">🎧 Sesli Kur'an Dinleme</span></div>
-        </div>
-        <div class="audio-controls-row">
-            <select id="reciterSelect" class="reciter-select" onchange="updateAudioSource()">
-                <option value="ar.alafasy">Mishary Rashid Alafasy</option>
-                <option value="ar.abdulbasit">Abdulbasit Abdussamed</option>
-                <option value="ar.minshawi">Mohamed Siddiq el-Minshawi</option>
-                <option value="ar.husary">Mahmoud Khalil Al-Husary</option>
-                <option value="ar.sudais">Abdurrahman As-Sudais</option>
-            </select>
-        </div>
-        <div class="audio-player-container">
-            <audio id="audioPlayer" controls preload="auto">
-                Tarayıcınız ses oynatmayı desteklemiyor.
-            </audio>
-            <div id="audioStatus" class="audio-status">Dinlemek için sure seçin</div>
-        </div>
-    </div>
-
     <div class="select-card">
         <input type="text" id="searchInput" class="search-input" placeholder="🔍 Sure veya Ayet ara (Örn: İnşirah, Ayetel Kürsi...)" oninput="filterSurahs()" data-i18n-placeholder="search_placeholder">
         
@@ -535,15 +464,11 @@
             total_pages: "Toplam:",
             daily_read: "Bugün:",
             hatim_title: "📖 Hatim & İlerleme Takibi",
-            audio_title: "🎧 Sesli Kur'an Dinleme",
             page_unit: "Sayfa",
             confirm_reset: "Hatim ilerlemeniz sıfırlansın mı?",
             back_5: "5 Sayfa Geri Al",
             back_1: "1 Sayfa Geri Al",
-            reset_title: "Hatmi Sıfırla",
-            audio_loading: "Ses indiriliyor, lütfen bekleyin...",
-            audio_ready: "Ses hazır, oynatabilirsiniz.",
-            audio_error: "Ses dosyası yüklenemedi."
+            reset_title: "Hatmi Sıfırla"
         },
         en: {
             page_title: "Holy Quran | Ayetin Vakti",
@@ -563,15 +488,11 @@
             total_pages: "Total:",
             daily_read: "Today:",
             hatim_title: "📖 Khatm & Progress Tracker",
-            audio_title: "🎧 Audio Quran Recitation",
             page_unit: "Pages",
             confirm_reset: "Do you want to reset your progress?",
             back_5: "Undo 5 Pages",
             back_1: "Undo 1 Page",
-            reset_title: "Reset Progress",
-            audio_loading: "Downloading audio, please wait...",
-            audio_ready: "Audio ready to play.",
-            audio_error: "Could not load audio file."
+            reset_title: "Reset Progress"
         },
         ar: {
             page_title: "القرآن الكريم | آية الوقت",
@@ -591,15 +512,11 @@
             total_pages: "المجموع:",
             daily_read: "اليوم:",
             hatim_title: "📖 تتبع ختم القرآن",
-            audio_title: "🎧 الاستماع للقرآن الكريم",
             page_unit: "صفحة",
             confirm_reset: "هل تريد إعادة تعيين تقدم الختمة؟",
             back_5: "تراجع 5 صفحات",
             back_1: "تراجع صفحة واحدة",
-            reset_title: "إعادة تعيين",
-            audio_loading: "جاري تحميل الصوت...",
-            audio_ready: "الصوت جاهز للتشغيل.",
-            audio_error: "تعذر تحميل ملف الصوت."
+            reset_title: "إعادة تعيين"
         }
     };
 
@@ -607,7 +524,6 @@
     const t = translations[activeLang] || translations['tr'];
 
     let surahList = [];
-    let currentBlobUrl = null;
 
     const customKeywords = {
         "fatiha": 1, "bakara": 2, "ali imran": 3, "nisa": 4, "maide": 5, "enam": 6, "araf": 7, "enfal": 8, "tevbe": 9, "yunus": 10,
@@ -696,48 +612,6 @@
             localStorage.setItem('hatim_total_pages', '0');
             localStorage.setItem('hatim_daily_pages', '0');
             updateHatimUI();
-        }
-    }
-
-    // --- SAFARI & MOBİL UYUMLU BLOB SES YÜKLEME MEKANİZMASI ---
-    async function updateAudioSource() {
-        const surahSelect = document.getElementById('surahSelect');
-        const reciterSelect = document.getElementById('reciterSelect');
-        const audioPlayer = document.getElementById('audioPlayer');
-        const statusEl = document.getElementById('audioStatus');
-
-        const surahNum = surahSelect.value;
-        const reciterEdition = reciterSelect.value;
-
-        if (!surahNum) return;
-
-        const paddedNum = String(surahNum).padStart(3, '0');
-        const audioUrl = `https://cdn.islamic.network/quran/surah-audio/128/${reciterEdition}/${paddedNum}.mp3`;
-        
-        audioPlayer.pause();
-        statusEl.textContent = t.audio_loading;
-
-        if (currentBlobUrl) {
-            URL.revokeObjectURL(currentBlobUrl);
-            currentBlobUrl = null;
-        }
-
-        try {
-            // Sesi komple indirip Blob nesnesine dönüştürüyoruz (iOS takılmalarını tamamen çözer)
-            const response = await fetch(audioUrl);
-            if (!response.ok) throw new Error('Network error');
-            const blob = await response.blob();
-            
-            currentBlobUrl = URL.createObjectURL(blob);
-            audioPlayer.src = currentBlobUrl;
-            audioPlayer.load();
-            statusEl.textContent = t.audio_ready;
-        } catch (err) {
-            // Alternatif CDN köprüsü (CORS engeline takılmayan her ihtimale karşı fallback)
-            const fallbackUrl = `https://everyayah.com/data/${reciterEdition.replace('ar.', '')}/${paddedNum}.mp3`;
-            audioPlayer.src = fallbackUrl;
-            audioPlayer.load();
-            statusEl.textContent = t.audio_ready;
         }
     }
 
@@ -852,8 +726,6 @@
 
         localStorage.setItem('last_surah_number', surahNumber);
         document.getElementById('surahSelect').value = surahNumber;
-
-        updateAudioSource();
 
         const contentEl = document.getElementById('quranContent');
         const headerEl = document.getElementById('surahHeader');
