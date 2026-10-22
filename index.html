@@ -11,7 +11,6 @@
         const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (savedTheme === 'light' || (!savedTheme && !systemPrefersDark)) {
             document.documentElement.classList.add('light-mode');
-            document.body && document.body.classList.add('light-mode');
         }
 
         const savedAccent = localStorage.getItem('custom_accent');
@@ -26,15 +25,13 @@
         if (savedText) document.documentElement.style.setProperty('--text-color', savedText);
 
         const currentLang = localStorage.getItem('user_lang') || 'tr';
-        if (currentLang === 'ar') {
-            document.documentElement.setAttribute('dir', 'rtl');
-        } else {
-            document.documentElement.setAttribute('dir', 'ltr');
-        }
+        document.documentElement.setAttribute('lang', currentLang);
+        document.documentElement.setAttribute('dir', currentLang === 'ar' ? 'rtl' : 'ltr');
     </script>
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- DÜZELTME: Yakınlaştırmayı engelleyen maximum-scale / user-scalable=no kaldırıldı (erişilebilirlik) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title data-i18n="page_title">Kur'an-ı Kerim | Ayetin Vakti</title>
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -258,11 +255,40 @@
             color: var(--text-color);
             font-size: 0.95rem;
             outline: none;
+            user-select: text;
+            -webkit-user-select: text;
         }
 
         .search-input:focus {
             border-color: var(--accent-color);
         }
+
+        /* Arama sonuç listesi */
+        .search-results {
+            display: none;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: var(--bg-color);
+        }
+        .search-results.open { display: flex; }
+
+        .search-result-item {
+            padding: 11px 14px;
+            font-size: 0.92rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+        .search-result-item:last-child { border-bottom: none; }
+        .search-result-item:hover { background-color: var(--btn-hover); }
+        .search-result-item .sr-sub { font-size: 0.78rem; color: var(--text-muted); }
+        .search-result-item .sr-ar { font-family: 'Amiri', serif; font-size: 1.1rem; color: var(--accent-color); }
+        .search-empty { padding: 12px 14px; font-size: 0.88rem; color: var(--text-muted); }
 
         .surah-select {
             width: 100%;
@@ -307,10 +333,30 @@
             color: var(--accent-color);
         }
 
+        .surah-name-ar {
+            font-family: 'Amiri', serif;
+            font-size: 1.5rem;
+            color: var(--arabic-text-color);
+            margin-top: 2px;
+        }
+
         .surah-meta {
             font-size: 0.85rem;
             color: var(--text-muted);
             margin-top: 4px;
+        }
+
+        .full-surah-btn {
+            display: none;
+            margin: 0 auto 16px auto;
+            background-color: var(--btn-bg);
+            border: 1px solid var(--accent-color);
+            color: var(--accent-color);
+            padding: 8px 16px;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
         }
 
         .verse-box {
@@ -363,6 +409,13 @@
             line-height: 1.6;
             text-align: left;
             color: var(--translation-color);
+        }
+
+        /* Arapça dilinde (tefsir) metin sağdan sola */
+        [dir="rtl"] .translation-text.is-ar,
+        .translation-text.is-ar {
+            direction: rtl;
+            text-align: right;
         }
 
         .verse-number-badge {
@@ -423,7 +476,8 @@
     </div>
 
     <div class="select-card">
-        <input type="text" id="searchInput" class="search-input" placeholder="🔍 Sure veya Ayet ara (Örn: İnşirah, Ayetel Kürsi...)" oninput="filterSurahs()" data-i18n-placeholder="search_placeholder">
+        <input type="text" id="searchInput" class="search-input" autocomplete="off" placeholder="🔍 Sure veya Ayet ara (Örn: İnşirah, Ayetel Kürsi...)" oninput="filterSurahs()" onkeydown="searchKeydown(event)" data-i18n-placeholder="search_placeholder">
+        <div id="searchResults" class="search-results"></div>
         
         <select id="surahSelect" class="surah-select" onchange="loadSurah(this.value)">
             <option value="" data-i18n="select_default">Sure Seçiniz...</option>
@@ -433,12 +487,15 @@
     <div class="reader-card">
         <div class="surah-info-header" id="surahHeader" style="display: none;">
             <div class="surah-name-tr" id="surahTitle">Fatiha Suresi</div>
+            <div class="surah-name-ar" id="surahTitleAr"></div>
             <div class="surah-meta" id="surahMeta">7 Ayet • Mekke</div>
         </div>
 
         <div id="bismillahHeader" class="bismillah" style="display: none;">
             بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
         </div>
+
+        <button id="fullSurahBtn" class="full-surah-btn" onclick="showFullSurah()" data-i18n="show_full">Tüm sureyi oku</button>
 
         <div id="quranContent" class="loading-spinner" data-i18n="loading_surah">
             Sure yükleniyor...
@@ -447,22 +504,24 @@
 </div>
 
 <script>
-    // Dil Sözlüğü Güncellendi (Hatim ve Takip Alanları Eklendi)
+    // ===================== DİL SÖZLÜĞÜ =====================
     const translations = {
         tr: {
             page_title: "Kur'an-ı Kerim | Ayetin Vakti",
             app_title: "Kur'an-ı Kerim Meal & Okunuş",
-            search_placeholder: "🔍 Sure veya Ayet ara (Örn: İnşirah, Ayetel Kürsi...)",
+            search_placeholder: "🔍 Sure veya ayet ara (Örn: İnşirah, Ferahlık, Ayetel Kürsi, 2:255)",
             select_default: "Sure Seçiniz...",
             loading_surah: "Sure yükleniyor...",
             loading_all: "Ayetler, okunuşlar ve mealler yükleniyor...",
-            err_list: "Sure listesi yüklenirken hata oluştu. Lütfen internet bağlantınızı kontrol edin.",
-            err_content: "İçerik yüklenirken hata oluştu.",
+            err_content: "İçerik yüklenirken hata oluştu. Lütfen internet bağlantınızı kontrol edin.",
+            no_results: "Sonuç bulunamadı. Sure adını, anlamını veya numarasını deneyin.",
+            show_full: "Tüm sureyi oku",
             transliteration_label: "Okunuş:",
             translation_label: "Meal:",
             meccan: "Mekke",
             medinan: "Medine",
             ayah_text: "Ayet",
+            surah_word: "Suresi",
             last_read: "Kaldığın Yer:",
             total_pages: "Toplam:",
             daily_read: "Bugün:",
@@ -476,17 +535,19 @@
         en: {
             page_title: "Holy Quran | Ayetin Vakti",
             app_title: "Quran Translation & Transliteration",
-            search_placeholder: "🔍 Search Surah or Ayah (e.g. Inshirah, Ayatul Kursi...)",
+            search_placeholder: "🔍 Search Surah or Ayah (e.g. Inshirah, Ayatul Kursi, 2:255)",
             select_default: "Select Surah...",
             loading_surah: "Loading Surah...",
             loading_all: "Loading verses, transliterations and translations...",
-            err_list: "Error loading surah list. Please check your internet connection.",
-            err_content: "Error loading content.",
+            err_content: "Error loading content. Please check your internet connection.",
+            no_results: "No results found. Try the surah name, meaning or number.",
+            show_full: "Read the full surah",
             transliteration_label: "Transliteration:",
             translation_label: "Translation:",
             meccan: "Meccan",
             medinan: "Medinan",
             ayah_text: "Ayahs",
+            surah_word: "Surah",
             last_read: "Last Read:",
             total_pages: "Total:",
             daily_read: "Today:",
@@ -499,18 +560,20 @@
         },
         ar: {
             page_title: "القرآن الكريم | آية الوقت",
-            app_title: "القرآن الكريم مع التفسير والترجمة",
-            search_placeholder: "🔍 ابحث عن سورة أو آية...",
+            app_title: "القرآن الكريم مع التفسير",
+            search_placeholder: "🔍 ابحث عن سورة أو آية (مثال: الشرح، آية الكرسي، 2:255)",
             select_default: "اختر السورة...",
             loading_surah: "جاري تحميل السورة...",
-            loading_all: "جاري تحميل الآيات والقراءات والمعاني...",
-            err_list: "حدث خطأ أثناء تحميل قائمة السور. يرجى التحقق من اتصالك بالإنترنت.",
-            err_content: "حدث خطأ أثناء تحميل المحتوى.",
+            loading_all: "جاري تحميل الآيات والتفسير...",
+            err_content: "حدث خطأ أثناء تحميل المحتوى. يرجى التحقق من اتصالك بالإنترنت.",
+            no_results: "لا توجد نتائج. جرّب اسم السورة أو معناها أو رقمها.",
+            show_full: "اقرأ السورة كاملة",
             transliteration_label: "القراءة:",
             translation_label: "التفسير:",
             meccan: "مكية",
             medinan: "مدنية",
             ayah_text: "آيات",
+            surah_word: "سورة",
             last_read: "آخر قراءة:",
             total_pages: "المجموع:",
             daily_read: "اليوم:",
@@ -523,83 +586,157 @@
         }
     };
 
-    const activeLang = localStorage.getItem('user_lang') || 'tr';
-    const t = translations[activeLang] || translations['tr'];
+    const activeLang = (translations[localStorage.getItem('user_lang')] ? localStorage.getItem('user_lang') : 'tr');
+    const t = translations[activeLang];
 
-    let surahList = [];
+    // Dile göre içerik (okunuş / meal / tefsir) kaynakları
+    const EDITIONS = {
+        tr: { translit: 'tr.transliteration', transl: 'tr.yazir' },
+        en: { translit: 'en.transliteration', transl: 'en.sahih' },
+        ar: { translit: null,                 transl: 'ar.muyassar' }
+    };
+    const ed = EDITIONS[activeLang];
 
-    const customKeywords = {
-        "fatiha": 1, "bakara": 2, "ali imran": 3, "nisa": 4, "maide": 5, "enam": 6, "araf": 7, "enfal": 8, "tevbe": 9, "yunus": 10,
-        "hud": 11, "yusuf": 12, "rad": 13, "ibrahim": 14, "hicr": 15, "nahl": 16, "isra": 17, "kehf": 18, "meryem": 19, "taha": 20,
-        "enbiya": 21, "hac": 22, "muminun": 23, "nur": 24, "furkan": 25, "suara": 26, "neml": 27, "kasas": 28, "ankebut": 29, "rum": 30,
-        "lokman": 31, "secde": 32, "ahzab": 33, "sebe": 34, "fatir": 35, "yasin": 36, "saffat": 37, "sad": 38, "zumer": 39, "mumin": 40,
-        "fussilet": 41, "sura": 42, "zuhruf": 43, "duhan": 44, "casiye": 45, "ahkaf": 46, "muhammed": 47, "fetih": 48, "hucurat": 49, "kaf": 50,
-        "zariyat": 51, "tur": 52, "necm": 53, "kamer": 54, "rahman": 55, "vakia": 56, "hadid": 57, "mucadele": 58, "hasr": 59, "muminece": 60,
-        "saff": 61, "cuma": 62, "munafikun": 63, "tegabun": 64, "talak": 65, "tahrim": 66, "mulk": 67, "kalem": 68, "hakka": 69, "mearic": 70,
-        "nuh": 71, "cin": 72, "muzzemmil": 73, "muddessir": 74, "kiyame": 75, "insan": 76, "murselat": 77, "nebe": 78, "naziat": 79, "abese": 80,
-        "tekvir": 81, "infitar": 82, "mutaffifin": 83, "insikak": 84, "buruc": 85, "tarik": 86, "ala": 87, "gasiye": 88, "fecr": 89, "beled": 90,
-        "sems": 91, "leyl": 92, "duha": 93, "insirah": 94, "tin": 95, "alak": 96, "kadir": 97, "beyyine": 98, "zilzal": 99, "adiyat": 100,
-        "karia": 101, "tekasur": 102, "asr": 103, "humeze": 104, "fil": 105, "kureys": 106, "maun": 107, "kevser": 108, "kafirun": 109, "nasr": 110,
-        "tebbet": 111, "ihlas": 112, "felak": 113, "nas": 114,
-        
-        "ayetel kursi": { surah: 2, ayah: 255 },
-        "ayetelkursi": { surah: 2, ayah: 255 },
-        "kursi": { surah: 2, ayah: 255 },
-        "amenerrasulu": { surah: 2, startAyah: 285 },
-        "amenerrasulü": { surah: 2, startAyah: 285 }
+    // ===================== SURE İSİMLERİ (Türkçe: "Ad|Anlamı") =====================
+    const SURAHS_TR = ("Fâtiha|Açılış;Bakara|İnek;Âl-i İmrân|İmran Ailesi;Nisâ|Kadınlar;Mâide|Sofra;En'âm|Hayvanlar;A'râf|Yüksek Yerler;Enfâl|Ganimetler;Tevbe|Tövbe;Yûnus|Hz. Yunus;" +
+        "Hûd|Hz. Hud;Yûsuf|Hz. Yusuf;Ra'd|Gök Gürültüsü;İbrâhîm|Hz. İbrahim;Hicr|Hicr;Nahl|Arı;İsrâ|Gece Yürüyüşü;Kehf|Mağara;Meryem|Hz. Meryem;Tâhâ|Tâhâ;" +
+        "Enbiyâ|Peygamberler;Hac|Hac;Mü'minûn|Müminler;Nûr|Nur;Furkân|Ayırt Edici;Şuarâ|Şairler;Neml|Karınca;Kasas|Kıssalar;Ankebût|Örümcek;Rûm|Bizanslılar;" +
+        "Lokmân|Hz. Lokman;Secde|Secde;Ahzâb|Topluluklar;Sebe'|Sebe;Fâtır|Yaratan;Yâsîn|Yâsîn;Sâffât|Saf Tutanlar;Sâd|Sâd;Zümer|Kalabalıklar;Mü'min (Gâfir)|Bağışlayan;" +
+        "Fussilet|Ayrıntılı Açıklanmış;Şûrâ|Danışma;Zuhruf|Altın Süs;Duhân|Duman;Câsiye|Diz Üstü Çökenler;Ahkâf|Kum Tepeleri;Muhammed|Hz. Muhammed;Fetih|Fetih;Hucurât|Odalar;Kâf|Kâf;" +
+        "Zâriyât|Savuranlar;Tûr|Tûr Dağı;Necm|Yıldız;Kamer|Ay;Rahmân|Rahmân;Vâkıa|Kıyamet Olayı;Hadîd|Demir;Mücâdele|Tartışma;Haşr|Toplanma;Mümtehine|İmtihan Edilen Kadın;" +
+        "Saff|Saf;Cuma|Cuma;Münâfikûn|Münafıklar;Tegâbün|Aldanma;Talâk|Boşanma;Tahrîm|Yasaklama;Mülk|Hükümranlık;Kalem|Kalem;Hâkka|Gerçek;Meâric|Yükseliş Basamakları;" +
+        "Nûh|Hz. Nuh;Cin|Cinler;Müzzemmil|Örtünen;Müddessir|Bürünen;Kıyâme|Kıyamet Günü;İnsan|İnsan;Mürselât|Gönderilenler;Nebe'|Büyük Haber;Nâziât|Söküp Çıkaranlar;Abese|Surat Astı;" +
+        "Tekvîr|Dürülme;İnfitâr|Yarılma;Mutaffifîn|Ölçüde Hile Yapanlar;İnşikâk|Yırtılma;Bürûc|Burçlar;Târık|Gece Gelen;A'lâ|En Yüce;Gâşiye|Kuşatan;Fecr|Şafak;Beled|Şehir;" +
+        "Şems|Güneş;Leyl|Gece;Duhâ|Kuşluk;İnşirâh|Ferahlık;Tîn|İncir;Alak|Kan Pıhtısı;Kadir|Kadir Gecesi;Beyyine|Apaçık Delil;Zilzâl|Deprem;Âdiyât|Koşan Atlar;" +
+        "Kâria|Çarpıcı;Tekâsür|Çoklukla Övünme;Asr|Zaman;Hümeze|Dedikoducu;Fîl|Fil;Kureyş|Kureyş;Mâûn|Küçük Yardımlar;Kevser|Bolluk;Kâfirûn|Kâfirler;Nasr|Yardım;" +
+        "Tebbet (Mesed)|Ebu Leheb;İhlâs|Samimiyet;Felak|Sabah Aydınlığı;Nâs|İnsanlar").split(';').map(s => s.split('|'));
+
+    // Aramayı kolaylaştıran ek yazılışlar (boşluksuz/alternatif yazımlar)
+    const EXTRA_KEYS = {
+        2: "baqarah baqara", 3: "ali imran al imran aliimran", 4: "nisa", 6: "enam anam", 7: "araf", 9: "berae tawbah", 10: "yunus",
+        17: "israil isra", 18: "kahf", 26: "suara shuara", 28: "qasas", 36: "yasin yaseen", 40: "mumin gafir ghafir", 41: "hamim secde ha mim",
+        42: "sura shura", 56: "vakia waqia", 58: "mujadila", 59: "hashr", 60: "mumtahina", 67: "tebareke tabarak mulk", 75: "qiyama",
+        78: "amme naba", 94: "serh sharh alamnesrah", 96: "iqra alaq", 97: "qadr", 105: "feel", 107: "maun maoun", 108: "kawthar",
+        109: "kafirun", 111: "mesed leheb lahab masad", 112: "ihlas ikhlas", 113: "felak falaq", 114: "nas"
     };
 
+    // Ayet kısayolları (isim + "ayet no" yerine doğrudan bilinen ayetler)
+    const AYAH_ALIASES = [
+        { keys: ["ayetelkursi", "kursi", "ayatalkursi", "ayatulkursi", "آية الكرسي"], surah: 2, ayah: 255,
+          names: { tr: "Ayetel Kürsi (Bakara 2:255)", en: "Ayat al-Kursi (2:255)", ar: "آية الكرسي (2:255)" } },
+        { keys: ["amenerrasulu", "amanarrasul", "bakarasonayet", "آمن الرسول"], surah: 2, startAyah: 285,
+          names: { tr: "Âmenerrasûlü (Bakara 285-286)", en: "Amana ar-Rasul (Al-Baqarah 285-286)", ar: "آمن الرسول (البقرة 285-286)" } }
+    ];
+
+    // ===================== DURUM =====================
+    let surahMap = {};        // API'den gelen sure bilgileri (englishName, name, vb.)
+    let searchIndex = [];     // Arama anahtarları
+    let currentResults = [];
+    let currentSurahNumber = null;
+    let loadToken = 0;
+
+    // Türkçe karakter, şapka, noktalama ve Arapça harekeleri temizleyen normalleştirme
+    function norm(str) {
+        return String(str || '')
+            .toLocaleLowerCase('tr')
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[\u064B-\u065F\u0670\u0640]/g, '')
+            .replace(/[أإآٱ]/g, 'ا').replace(/ى/g, 'ي').replace(/ة/g, 'ه')
+            .replace(/ı/g, 'i')
+            .replace(/[^a-z0-9\u0600-\u06ff]/g, '');
+    }
+
+    function buildIndex() {
+        searchIndex = [];
+        for (let n = 1; n <= 114; n++) {
+            const tr = SURAHS_TR[n - 1];
+            const s = surahMap[n] || {};
+            const keys = [tr[0], tr[1], s.englishName, s.englishNameTranslation, s.name, String(n)];
+            if (EXTRA_KEYS[n]) EXTRA_KEYS[n].split(' ').forEach(k => keys.push(k));
+            searchIndex.push({
+                n: n,
+                keys: keys.map(norm).filter(Boolean),
+                // "mü'min (gâfir)" gibi parantezli adların parantez dışını da ayrı anahtar yap
+                extra: tr[0].replace(/\(.*?\)/g, '').trim()
+            });
+            const base = norm(searchIndex[n - 1].extra);
+            if (base && !searchIndex[n - 1].keys.includes(base)) searchIndex[n - 1].keys.push(base);
+        }
+    }
+
+    function shortName(n) {
+        const s = surahMap[n] || {};
+        const tr = SURAHS_TR[n - 1];
+        if (activeLang === 'ar') return s.name || (t.surah_word + ' ' + tr[0]);
+        if (activeLang === 'en') return `${t.surah_word} ${s.englishName || tr[0]}`;
+        return `${tr[0]} ${t.surah_word}`;
+    }
+
+    // Açılır listede ve sonuçlarda görünen isim (dile göre)
+    function surahLabel(n) {
+        const s = surahMap[n] || {};
+        const tr = SURAHS_TR[n - 1];
+        if (activeLang === 'ar') return `${n}. ${s.name || tr[0]}`;
+        if (activeLang === 'en') return `${n}. ${s.englishName || tr[0]}${s.englishNameTranslation ? ' (' + s.englishNameTranslation + ')' : ''}`;
+        return `${n}. ${tr[0]} (${tr[1]})`;
+    }
+
+    // ===================== TEMA =====================
     function updateThemeButton(isLight) {
         const btn = document.getElementById('theme-btn');
-        if (btn) {
-            btn.textContent = isLight ? '☀️' : '🌙';
-        }
+        if (btn) btn.textContent = isLight ? '☀️' : '🌙';
     }
 
     function initTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        const isLight = (savedTheme === 'light') || (!savedTheme && !systemPrefersDark);
-        applyTheme(isLight);
+        const saved = localStorage.getItem('theme');
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        applyTheme((saved === 'light') || (!saved && !prefersDark));
     }
 
     function toggleTheme() {
-        const isLight = document.documentElement.classList.contains('light-mode');
-        applyTheme(!isLight);
+        applyTheme(!document.documentElement.classList.contains('light-mode'));
     }
 
     function applyTheme(isLight) {
-        if (isLight) {
-            document.documentElement.classList.add('light-mode');
-            document.body.classList.add('light-mode');
-            localStorage.setItem('theme', 'light');
-        } else {
-            document.documentElement.classList.remove('light-mode');
-            document.body.classList.remove('light-mode');
-            localStorage.setItem('theme', 'dark');
-        }
+        document.documentElement.classList.toggle('light-mode', isLight);
+        document.body.classList.toggle('light-mode', isLight);
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
         updateThemeButton(isLight);
     }
 
-    // --- HATİM VE İLERLEME YÖNETİMİ ---
+    // ===================== HATİM & İLERLEME =====================
+    function todayKey() {
+        const d = new Date();
+        return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    }
+
+    // DÜZELTME: "Bugün okunan sayfa" artık her yeni günde sıfırlanıyor
+    function ensureDailyReset() {
+        if (localStorage.getItem('hatim_daily_date') !== todayKey()) {
+            localStorage.setItem('hatim_daily_date', todayKey());
+            localStorage.setItem('hatim_daily_pages', '0');
+        }
+    }
+
     function updateHatimUI() {
+        ensureDailyReset();
         const totalPages = parseInt(localStorage.getItem('hatim_total_pages')) || 0;
         const dailyPages = parseInt(localStorage.getItem('hatim_daily_pages')) || 0;
-        
-        const defaultSurahName = activeLang === 'en' ? 'Surah Fatiha' : (activeLang === 'ar' ? 'سورة الفاتحة' : 'Fatiha Suresi');
-        const lastSurahName = localStorage.getItem('hatim_last_surah') || defaultSurahName;
+        const lastNum = parseInt(localStorage.getItem('last_surah_number')) || 1;
 
         const maxPages = 604;
-        const percentage = Math.min(100, Math.max(0, ((totalPages / maxPages) * 100))).toFixed(1);
+        const percentage = Math.min(100, Math.max(0, (totalPages / maxPages) * 100)).toFixed(1);
 
         document.getElementById('hatimPercentage').innerText = `%${percentage}`;
         document.getElementById('hatimProgressBar').style.width = `${percentage}%`;
-        document.getElementById('lastReadInfo').innerText = `${t.last_read} ${lastSurahName}`;
+        // "Kaldığın yer" artık seçili dile göre sure adıyla gösteriliyor
+        document.getElementById('lastReadInfo').innerText = `${t.last_read} ${shortName(lastNum)}`;
         document.getElementById('totalPageInfo').innerText = `${t.total_pages} ${totalPages} / ${maxPages} ${t.page_unit}`;
         document.getElementById('dailyGoalText').innerText = `${t.daily_read} ${dailyPages} ${t.page_unit}`;
     }
 
     function addPages(amount) {
+        ensureDailyReset();
         let totalPages = parseInt(localStorage.getItem('hatim_total_pages')) || 0;
         let dailyPages = parseInt(localStorage.getItem('hatim_daily_pages')) || 0;
 
@@ -619,17 +756,28 @@
         }
     }
 
+    // ===================== BAŞLATMA =====================
+    function renderSurahOptions() {
+        const selectEl = document.getElementById('surahSelect');
+        const current = selectEl.value;
+        selectEl.innerHTML = `<option value="">${t.select_default}</option>`;
+        for (let n = 1; n <= 114; n++) {
+            const option = document.createElement('option');
+            option.value = n;
+            option.textContent = surahLabel(n);
+            selectEl.appendChild(option);
+        }
+        if (current) selectEl.value = current;
+    }
+
     async function init() {
         initTheme();
 
-        // Statik metinleri ve title/placeholder/title-attribute'ları dile göre yerleştir
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
-            if (t[key]) {
-                if (el.tagName === 'TITLE') document.title = t[key];
-                else el.textContent = t[key];
-            }
+            if (t[key] && el.tagName !== 'TITLE') el.textContent = t[key];
         });
+        document.title = t.page_title;
         document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
             const key = el.getAttribute('data-i18n-placeholder');
             if (t[key]) el.placeholder = t[key];
@@ -639,158 +787,248 @@
             if (t[key]) el.title = t[key];
         });
 
+        // DÜZELTME: Sure listesi internet olmadan da (Türkçe adlarla) hemen çizilir
+        buildIndex();
+        renderSurahOptions();
         updateHatimUI();
 
+        const lastSurahNum = parseInt(localStorage.getItem('last_surah_number')) || 1;
+        document.getElementById('surahSelect').value = lastSurahNum;
+        loadSurah(lastSurahNum);
+
+        // İngilizce/Arapça adlar ve arama için API'den sure listesi çekilir
         try {
             const res = await fetch('https://api.alquran.cloud/v1/surah');
+            if (!res.ok) throw new Error('API');
             const data = await res.json();
-            surahList = data.data;
-
-            renderSurahOptions(surahList);
-
-            // Son kalınan sureyi hafızadan al, yoksa 1 (Fatiha) ile başla
-            const lastSurahNum = localStorage.getItem('last_surah_number') || 1;
-            document.getElementById('surahSelect').value = lastSurahNum;
-            loadSurah(lastSurahNum);
+            data.data.forEach(s => { surahMap[s.number] = s; });
+            buildIndex();
+            renderSurahOptions();
+            updateHatimUI();
         } catch (err) {
-            document.getElementById('quranContent').innerHTML = t.err_list;
+            console.log('Sure listesi API\'den alınamadı, yerel adlar kullanılıyor.', err);
         }
     }
 
-    function renderSurahOptions(list) {
-        const selectEl = document.getElementById('surahSelect');
-        const currentSelected = selectEl.value;
-        selectEl.innerHTML = `<option value="">${t.select_default}</option>`;
-        
-        list.forEach(surah => {
-            const option = document.createElement('option');
-            option.value = surah.number;
-            
-            // Dile göre sure listesi gösterim düzeni
-            if (activeLang === 'ar') {
-                option.textContent = `${surah.number}. ${surah.name} (${surah.englishName})`;
-            } else {
-                option.textContent = `${surah.number}. ${surah.englishName} (${surah.name}) - ${surah.englishNameTranslation}`;
+    // ===================== ARAMA =====================
+    function findSurahByName(key) {
+        let best = null, bestScore = 0;
+        searchIndex.forEach(item => {
+            item.keys.forEach(k => {
+                let sc = 0;
+                if (k === key) sc = 100;
+                else if (k.startsWith(key)) sc = 60;
+                if (sc > bestScore) { bestScore = sc; best = item.n; }
+            });
+        });
+        return best;
+    }
+
+    function ayahCount(n) {
+        return surahMap[n] ? surahMap[n].numberOfAyahs : 286;
+    }
+
+    function runSearch(raw) {
+        const results = [];
+        const q = norm(raw);
+        if (!q) return results;
+
+        // 1) "2:255" / "bakara 255" / "inşirah 3" biçimleri
+        const m = raw.trim().match(/^(.*?)[\s:.,\-]+(\d{1,3})$/);
+        if (m && m[1].trim()) {
+            const nameKey = norm(m[1]);
+            const ayahNo = parseInt(m[2]);
+            const sn = /^\d+$/.test(nameKey) ? parseInt(nameKey) : findSurahByName(nameKey);
+            if (sn >= 1 && sn <= 114 && ayahNo >= 1 && ayahNo <= ayahCount(sn)) {
+                results.push({ surah: sn, ayah: ayahNo, label: `${shortName(sn)} ${sn}:${ayahNo}` });
             }
-            
-            selectEl.appendChild(option);
+        }
+
+        // 2) Bilinen ayet kısayolları
+        AYAH_ALIASES.forEach(a => {
+            const hit = a.keys.some(k => {
+                const nk = norm(k);
+                return q === nk || (q.length >= 3 && nk.includes(q));
+            });
+            if (hit) results.push({ surah: a.surah, ayah: a.ayah || null, startAyah: a.startAyah || null, label: a.names[activeLang] || a.names.tr });
         });
 
-        if (currentSelected) {
-            selectEl.value = currentSelected;
-        }
-    }
+        // 3) Sure adı / anlamı / numarası
+        const scored = [];
+        searchIndex.forEach(item => {
+            let best = 0;
+            item.keys.forEach(k => {
+                if (/^\d+$/.test(k)) { if (k === q) best = Math.max(best, 100); return; }
+                if (k === q) best = Math.max(best, 100);
+                else if (k.startsWith(q)) best = Math.max(best, 70);
+                else if (q.length >= 2 && k.includes(q)) best = Math.max(best, 40);
+            });
+            if (best > 0) scored.push({ n: item.n, score: best });
+        });
+        scored.sort((a, b) => b.score - a.score || a.n - b.n);
+        scored.slice(0, 8).forEach(s => results.push({ surah: s.n, label: surahLabel(s.n) }));
 
-    function turkishNormalize(str) {
-        return str.toLowerCase()
-            .replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's')
-            .replace(/ı/g, 'i').replace(/ö/g, 'o').replace(/ç/g, 'c');
+        return results.slice(0, 10);
     }
 
     function filterSurahs() {
-        const rawInput = document.getElementById('searchInput').value;
-        const keyword = turkishNormalize(rawInput.trim());
+        const raw = document.getElementById('searchInput').value;
+        const box = document.getElementById('searchResults');
 
-        if (!keyword) {
-            renderSurahOptions(surahList);
+        if (!raw.trim()) {
+            closeResults();
             return;
         }
 
-        for (let key in customKeywords) {
-            if (keyword.includes(key)) {
-                const match = customKeywords[key];
-                if (typeof match === 'object') {
-                    document.getElementById('surahSelect').value = match.surah;
-                    loadSurah(match.surah, match.ayah || null, match.startAyah || null);
-                    return;
-                } else {
-                    document.getElementById('surahSelect').value = match;
-                    loadSurah(match);
-                    return;
+        currentResults = runSearch(raw);
+        box.innerHTML = '';
+
+        if (currentResults.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'search-empty';
+            empty.textContent = t.no_results;
+            box.appendChild(empty);
+        } else {
+            currentResults.forEach((r, i) => {
+                const row = document.createElement('div');
+                row.className = 'search-result-item';
+                const left = document.createElement('span');
+                left.textContent = r.label;
+                row.appendChild(left);
+                const s = surahMap[r.surah];
+                if (s && s.name && activeLang !== 'ar') {
+                    const right = document.createElement('span');
+                    right.className = 'sr-ar';
+                    right.textContent = s.name;
+                    row.appendChild(right);
                 }
-            }
+                row.onclick = () => chooseResult(i);
+                box.appendChild(row);
+            });
         }
+        box.classList.add('open');
+    }
 
-        const filtered = surahList.filter(surah => {
-            const nameTr = turkishNormalize(surah.englishName);
-            const nameAr = turkishNormalize(surah.name);
-            const trans = turkishNormalize(surah.englishNameTranslation);
-            const num = surah.number.toString();
+    function closeResults() {
+        const box = document.getElementById('searchResults');
+        box.classList.remove('open');
+        box.innerHTML = '';
+        currentResults = [];
+    }
 
-            return nameTr.includes(keyword) || nameAr.includes(keyword) || trans.includes(keyword) || num === keyword;
-        });
+    function chooseResult(i) {
+        const r = currentResults[i];
+        if (!r) return;
+        document.getElementById('searchInput').value = '';
+        closeResults();
+        loadSurah(r.surah, r.ayah || null, r.startAyah || null);
+    }
 
-        renderSurahOptions(filtered);
-
-        if (filtered.length > 0 && keyword.length >= 3) {
-            document.getElementById('surahSelect').value = filtered[0].number;
-            loadSurah(filtered[0].number);
+    function searchKeydown(e) {
+        if (e.key === 'Enter' && currentResults.length > 0) {
+            e.preventDefault();
+            chooseResult(0);
+            e.target.blur();
         }
     }
 
-    async function loadSurah(surahNumber, targetAyah = null, startAyah = null) {
-        if (!surahNumber) return;
+    function showFullSurah() {
+        if (currentSurahNumber) loadSurah(currentSurahNumber);
+    }
 
-        localStorage.setItem('last_surah_number', surahNumber);
-        document.getElementById('surahSelect').value = surahNumber;
+    // ===================== SURE YÜKLEME =====================
+    async function fetchEdition(n, edition) {
+        if (!edition) return null;
+        try {
+            const r = await fetch(`https://api.alquran.cloud/v1/surah/${n}/${edition}`);
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const j = await r.json();
+            return j.data;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function setHeader(n, d) {
+        const tr = SURAHS_TR[n - 1];
+        const revType = d.revelationType === 'Meccan' ? t.meccan : t.medinan;
+        const count = d.numberOfAyahs;
+        let title, arabicLine, meta;
+
+        if (activeLang === 'ar') {
+            title = d.name; arabicLine = '';
+            meta = `${count} ${t.ayah_text} • ${revType}`;
+        } else if (activeLang === 'en') {
+            title = `${n}. ${t.surah_word} ${d.englishName}`; arabicLine = d.name;
+            meta = `${count} ${t.ayah_text} • ${revType} • ${d.englishNameTranslation}`;
+        } else {
+            title = `${n}. ${tr[0]} ${t.surah_word}`; arabicLine = d.name;
+            meta = `${count} ${t.ayah_text} • ${revType} • ${tr[1]}`;
+        }
+
+        document.getElementById('surahHeader').style.display = 'block';
+        document.getElementById('surahTitle').innerText = title;
+        document.getElementById('surahTitleAr').innerText = arabicLine;
+        document.getElementById('surahMeta').innerText = meta;
+    }
+
+    async function loadSurah(surahNumber, targetAyah = null, startAyah = null) {
+        const n = parseInt(surahNumber);
+        if (!n || n < 1 || n > 114) return;
+
+        const myToken = ++loadToken; // Hızlı sure değişimlerinde eski yanıtın ekrana basılmasını engeller
+        currentSurahNumber = n;
+        localStorage.setItem('last_surah_number', n);
+        document.getElementById('surahSelect').value = n;
+        updateHatimUI();
 
         const contentEl = document.getElementById('quranContent');
-        const headerEl = document.getElementById('surahHeader');
         const bismillahEl = document.getElementById('bismillahHeader');
+        const fullBtn = document.getElementById('fullSurahBtn');
 
         contentEl.className = 'loading-spinner';
         contentEl.innerHTML = t.loading_all;
+        fullBtn.style.display = (targetAyah || startAyah) ? 'block' : 'none';
+        bismillahEl.style.display = (n === 9 || n === 1) ? 'none' : 'block';
 
         try {
-            const surahInfo = surahList.find(s => s.number == surahNumber);
-            
-            if (surahInfo) {
-                headerEl.style.display = 'block';
-                const revType = surahInfo.revelationType === 'Meccan' ? t.meccan : t.medinan;
-                const surahDisplayName = `${surahInfo.number}. ${surahInfo.englishName} (${surahInfo.name})`;
-                document.getElementById('surahTitle').innerText = surahDisplayName;
-                document.getElementById('surahMeta').innerText = `${surahInfo.numberOfAyahs} ${t.ayah_text} • ${revType}`;
-
-                localStorage.setItem('hatim_last_surah', surahDisplayName);
-                updateHatimUI();
-            }
-
-            if (parseInt(surahNumber) === 9 || parseInt(surahNumber) === 1) {
-                bismillahEl.style.display = 'none';
-            } else {
-                bismillahEl.style.display = 'block';
-            }
-
-            const [resArabic, resTrans, resTransl] = await Promise.all([
-                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/quran-uthmani`),
-                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/tr.transliteration`),
-                fetch(`https://api.alquran.cloud/v1/surah/${surahNumber}/tr.yazir`)
+            const [arabicData, translitData, translData] = await Promise.all([
+                fetchEdition(n, 'quran-uthmani'),
+                fetchEdition(n, ed.translit),
+                fetchEdition(n, ed.transl)
             ]);
 
-            const dataArabic = await resArabic.json();
-            const dataTrans = await resTrans.json();
-            const dataTransl = await resTransl.json();
+            if (myToken !== loadToken) return;
+            if (!arabicData) throw new Error('Arapça metin alınamadı');
 
-            const ayahsArabic = dataArabic.data.ayahs;
-            const ayahsTrans = dataTrans.data.ayahs;
-            const ayahsTransl = dataTransl.data.ayahs;
+            // Başlık bilgisini içerikten de tamamlıyoruz (liste API'si gelmediyse bile çalışır)
+            if (!surahMap[n]) surahMap[n] = arabicData;
+            setHeader(n, surahMap[n]);
+
+            const ayahsArabic = arabicData.ayahs;
+            const ayahsTranslit = translitData ? translitData.ayahs : null;
+            const ayahsTransl = translData ? translData.ayahs : null;
 
             let htmlContent = '';
-            
+
             for (let i = 0; i < ayahsArabic.length; i++) {
                 let arabicText = ayahsArabic[i].text;
-                let transText = ayahsTrans[i].text;
-                let translText = ayahsTransl[i].text;
-                let ayahNum = ayahsArabic[i].numberInSurah;
+                const ayahNum = ayahsArabic[i].numberInSurah;
 
                 if (targetAyah && ayahNum !== targetAyah) continue;
                 if (startAyah && ayahNum < startAyah) continue;
 
-                if (surahNumber != 1 && surahNumber != 9 && ayahNum === 1) {
-                    arabicText = arabicText.replace('بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ', '').trim();
+                // Besmele zaten üstte ayrı gösteriliyor; ilk ayetin başındaki besmeleyi (4 kelime) çıkar
+                if (n !== 1 && n !== 9 && ayahNum === 1 && arabicText.startsWith('بِسْمِ')) {
+                    const words = arabicText.split(' ');
+                    if (words.length > 4) arabicText = words.slice(4).join(' ').trim();
                 }
 
                 const isHighlight = (targetAyah && ayahNum === targetAyah) || (startAyah && ayahNum >= startAyah);
+                const translitHtml = ayahsTranslit && ayahsTranslit[i]
+                    ? `<div class="transliteration-text"><strong>${t.transliteration_label}</strong> ${ayahsTranslit[i].text}</div>` : '';
+                const translHtml = ayahsTransl && ayahsTransl[i]
+                    ? `<div class="translation-text ${activeLang === 'ar' ? 'is-ar' : ''}"><strong>${t.translation_label}</strong> ${ayahsTransl[i].text}</div>` : '';
 
                 htmlContent += `
                     <div class="verse-box ${isHighlight ? 'highlight' : ''}">
@@ -798,29 +1036,35 @@
                             <div class="arabic-text">${arabicText}</div>
                             <span class="verse-number-badge">${ayahNum}</span>
                         </div>
-                        <div class="transliteration-text"><strong>${t.transliteration_label}</strong> ${transText}</div>
-                        <div class="translation-text"><strong>${t.translation_label}</strong> ${translText}</div>
+                        ${translitHtml}
+                        ${translHtml}
                     </div>
                 `;
             }
 
-            contentEl.className = ''; 
+            contentEl.className = '';
             contentEl.innerHTML = htmlContent;
 
             if (targetAyah || startAyah) {
                 setTimeout(() => {
                     const highlighted = document.querySelector('.verse-box.highlight');
-                    if (highlighted) {
-                        highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
+                    if (highlighted) highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }, 300);
+            } else {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             }
 
         } catch (err) {
+            if (myToken !== loadToken) return;
             contentEl.className = 'loading-spinner';
             contentEl.innerHTML = t.err_content;
         }
     }
+
+    // Arama kutusu dışına tıklanınca sonuç listesini kapat
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.select-card')) closeResults();
+    });
 
     document.addEventListener('DOMContentLoaded', init);
 </script>
