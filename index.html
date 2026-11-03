@@ -473,6 +473,138 @@
             color: var(--text-muted);
             font-size: 1.1rem;
         }
+        /* ===== Okuma işaretleri, hatim haritası, ses oynatıcı ===== */
+        .tracker-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+        .tool-btn {
+            background-color: var(--btn-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 7px 12px;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .tool-btn.primary { border-color: var(--accent-color); color: var(--accent-color); }
+        .tool-btn:disabled { opacity: 0.45; cursor: default; }
+        @media (hover: hover) {
+            .tool-btn:hover { background-color: var(--btn-hover); border-color: var(--accent-color); }
+        }
+
+        .hatim-map {
+            display: none;
+            flex-direction: column;
+            gap: 8px;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+        }
+        .hatim-map.open { display: flex; }
+        .map-hint { font-size: 0.78rem; color: var(--text-muted); line-height: 1.5; }
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(38px, 1fr));
+            gap: 5px;
+            direction: ltr;
+        }
+        .map-cell {
+            --p: 0%;
+            height: 34px;
+            padding: 0;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            background: linear-gradient(to top, color-mix(in srgb, var(--accent-color) 60%, transparent) var(--p), transparent var(--p));
+            color: var(--text-color);
+            font-size: 0.72rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .map-cell.full {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: var(--bg-color);
+        }
+        .map-cell.current { outline: 2px solid var(--text-color); outline-offset: 1px; }
+
+        .surah-progress { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+        .surah-progress-text { font-size: 0.82rem; color: var(--text-muted); }
+        .surah-actions { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-top: 12px; }
+
+        .verse-actions { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; margin-top: 2px; }
+        .v-btn {
+            background-color: var(--btn-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 6px 11px;
+            border-radius: 9px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .v-btn.on {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: var(--bg-color);
+        }
+        @media (hover: hover) {
+            .v-btn:hover { border-color: var(--accent-color); }
+        }
+        .verse-box.is-read {
+            border-inline-start: 3px solid var(--accent-color);
+            padding-inline-start: 12px;
+        }
+        .verse-box.playing {
+            background-color: color-mix(in srgb, var(--accent-color) 14%, transparent);
+            border-radius: 12px;
+            padding-inline: 12px;
+        }
+
+        .player {
+            position: fixed;
+            left: 0; right: 0; bottom: 0;
+            z-index: 50;
+            display: none;
+            justify-content: center;
+            padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+            background-color: var(--card-bg);
+            border-top: 1px solid var(--border-color);
+        }
+        .player.open { display: flex; }
+        .player-inner { width: 100%; max-width: 700px; display: flex; flex-direction: column; gap: 8px; }
+        .player-row { display: flex; align-items: center; gap: 8px; justify-content: space-between; }
+        .player-row.center { justify-content: center; gap: 12px; }
+        .player-title { font-size: 0.9rem; font-weight: 700; color: var(--accent-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .player-status { font-size: 0.75rem; color: var(--text-muted); min-height: 1em; }
+        .p-btn {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background-color: var(--btn-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .p-btn.main {
+            width: 48px; height: 48px;
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+            color: var(--bg-color);
+        }
+        .p-btn.small { width: 32px; height: 32px; font-size: 0.85rem; }
+        .p-select {
+            flex: 1; min-width: 0;
+            padding: 8px;
+            border-radius: 10px;
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            font-size: 0.82rem;
+        }
+        .p-check { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: var(--text-muted); cursor: pointer; }
+        body.player-open { padding-bottom: 230px; }
     </style>
 </head>
 <body>
@@ -498,14 +630,16 @@
             <span id="totalPageInfo">Toplam: 0 / 604 Sayfa</span>
         </div>
         <div class="daily-goal-row">
-            <span id="dailyGoalText">Bugün: 0 sayfa okundu</span>
-            <div class="goal-buttons">
-                <button class="goal-btn" onclick="addPages(-5)" data-i18n-title="back_5">-5</button>
-                <button class="goal-btn" onclick="addPages(-1)" data-i18n-title="back_1">-1</button>
-                <button class="goal-btn" onclick="addPages(1)">+1</button>
-                <button class="goal-btn" onclick="addPages(5)">+5</button>
+            <span id="dailyGoalText">Bugün: 0 ayet</span>
+            <div class="tracker-actions">
+                <button class="tool-btn primary" id="continueBtn" onclick="continueReading()" data-i18n="continue_btn">▶ Devam et</button>
+                <button class="tool-btn" onclick="toggleMap()" data-i18n="map_btn">🗺️ Harita</button>
                 <button class="goal-btn" onclick="resetHatim()" data-i18n-title="reset_title">🔄</button>
             </div>
+        </div>
+        <div class="hatim-map" id="hatimMap">
+            <div class="map-hint" data-i18n="map_hint"></div>
+            <div class="map-grid" id="mapGrid"></div>
         </div>
     </div>
 
@@ -523,6 +657,14 @@
             <div class="surah-name-tr" id="surahTitle">Fatiha Suresi</div>
             <div class="surah-name-ar" id="surahTitleAr"></div>
             <div class="surah-meta" id="surahMeta">7 Ayet • Mekke</div>
+            <div class="surah-progress">
+                <div class="progress-bar-container"><div class="progress-bar-fill" id="surahProgressBar"></div></div>
+                <div class="surah-progress-text" id="surahProgressText"></div>
+            </div>
+            <div class="surah-actions">
+                <button class="tool-btn primary" onclick="playSurah()" data-i18n="listen_surah">🔊 Sureyi dinle</button>
+                <button class="tool-btn" id="markSurahBtn" onclick="toggleSurahRead()"></button>
+            </div>
         </div>
 
         <div id="bismillahHeader" class="bismillah" style="display: none;">
@@ -534,6 +676,27 @@
         <div id="quranContent" class="loading-spinner" data-i18n="loading_surah">
             Sure yükleniyor...
         </div>
+    </div>
+</div>
+
+<div class="player" id="player">
+    <div class="player-inner">
+        <div class="player-row">
+            <div class="player-title" id="playerTitle"></div>
+            <button class="p-btn small" onclick="stopAudio()">✕</button>
+        </div>
+        <div class="player-status" id="playerStatus"></div>
+        <div class="player-row center">
+            <button class="p-btn" id="modeBtn" onclick="cycleMode()">➡️</button>
+            <button class="p-btn" onclick="prevAyah()">⏮</button>
+            <button class="p-btn main" id="playPauseBtn" onclick="togglePlay()">▶</button>
+            <button class="p-btn" onclick="nextAyah()">⏭</button>
+            <button class="p-btn" id="speedBtn" onclick="cycleSpeed()" style="font-size:0.75rem">1×</button>
+        </div>
+        <div class="player-row">
+            <select class="p-select" id="reciterSelect" onchange="changeReciter(this.value)"></select>
+        </div>
+        <label class="p-check"><input type="checkbox" id="autoMarkChk" onchange="setAutoMark(this.checked)"><span data-i18n="auto_mark">Dinlenen ayeti okundu say</span></label>
     </div>
 </div>
 
@@ -557,14 +720,34 @@
             ayah_text: "Ayet",
             surah_word: "Suresi",
             last_read: "Kaldığın Yer:",
-            total_pages: "Toplam:",
+            total_pages: "Okunan:",
             daily_read: "Bugün:",
             hatim_title: "📖 Hatim & İlerleme Takibi",
-            page_unit: "Sayfa",
-            confirm_reset: "Hatim ilerlemeniz sıfırlansın mı?",
+            page_unit: "ayet",
+            confirm_reset: "Tüm okuma işaretleri ve hatim ilerlemesi silinsin mi?",
             back_5: "5 Sayfa Geri Al",
             back_1: "1 Sayfa Geri Al",
-            reset_title: "Hatmi Sıfırla"
+            reset_title: "Hatmi Sıfırla",
+            read_btn: "✓ Okudum",
+            read_done: "✓ Okundu",
+            upto_btn: "⤒ Buraya kadar",
+            upto_title: "Bu ayete kadar hepsini okundu işaretle",
+            listen_short: "Dinle",
+            mark_surah: "✓ Sureyi okudum say",
+            unmark_surah: "↺ Sure işaretini kaldır",
+            confirm_unmark_surah: "Bu surenin okundu işaretleri kaldırılsın mı?",
+            listen_surah: "🔊 Sureyi dinle",
+            continue_btn: "▶ Devam et",
+            map_btn: "🗺️ Harita",
+            map_hint: "Dolu kare: sure tamamlandı • yarım dolu: kısmen okundu • boş: hiç okunmadı. Bir sureye dokunarak açabilirsin.",
+            hatim_done: "Hatim tamamlandı 🎉",
+            auto_mark: "Dinlenen ayeti okundu say",
+            audio_loading: "Ses yükleniyor...",
+            audio_err: "Ses yüklenemedi. İnternet bağlantınızı kontrol edin.",
+            audio_done: "Sure bitti",
+            mode_continue: "Sure sonuna kadar çal",
+            mode_ayah: "Ayeti tekrarla",
+            mode_surah: "Sureyi tekrarla"
         },
         en: {
             page_title: "Holy Quran | Ayetin Vakti",
@@ -583,14 +766,34 @@
             ayah_text: "Ayahs",
             surah_word: "Surah",
             last_read: "Last Read:",
-            total_pages: "Total:",
+            total_pages: "Read:",
             daily_read: "Today:",
             hatim_title: "📖 Khatm & Progress Tracker",
-            page_unit: "Pages",
-            confirm_reset: "Do you want to reset your progress?",
+            page_unit: "ayahs",
+            confirm_reset: "Delete all read marks and khatm progress?",
             back_5: "Undo 5 Pages",
             back_1: "Undo 1 Page",
-            reset_title: "Reset Progress"
+            reset_title: "Reset Progress",
+            read_btn: "✓ Mark read",
+            read_done: "✓ Read",
+            upto_btn: "⤒ Up to here",
+            upto_title: "Mark everything up to this ayah as read",
+            listen_short: "Listen",
+            mark_surah: "✓ Mark surah as read",
+            unmark_surah: "↺ Clear surah marks",
+            confirm_unmark_surah: "Clear the read marks of this surah?",
+            listen_surah: "🔊 Listen to surah",
+            continue_btn: "▶ Continue",
+            map_btn: "🗺️ Map",
+            map_hint: "Filled square: surah completed • half filled: partly read • empty: not read yet. Tap a surah to open it.",
+            hatim_done: "Khatm completed 🎉",
+            auto_mark: "Mark listened ayahs as read",
+            audio_loading: "Loading audio...",
+            audio_err: "Could not load audio. Please check your internet connection.",
+            audio_done: "Surah finished",
+            mode_continue: "Play to end of surah",
+            mode_ayah: "Repeat ayah",
+            mode_surah: "Repeat surah"
         },
         ar: {
             page_title: "القرآن الكريم | آية الوقت",
@@ -609,14 +812,34 @@
             ayah_text: "آيات",
             surah_word: "سورة",
             last_read: "آخر قراءة:",
-            total_pages: "المجموع:",
+            total_pages: "المقروء:",
             daily_read: "اليوم:",
             hatim_title: "📖 تتبع ختم القرآن",
-            page_unit: "صفحة",
-            confirm_reset: "هل تريد إعادة تعيين تقدم الختمة؟",
+            page_unit: "آية",
+            confirm_reset: "هل تريد حذف كل علامات القراءة وتقدم الختمة؟",
             back_5: "تراجع 5 صفحات",
             back_1: "تراجع صفحة واحدة",
-            reset_title: "إعادة تعيين"
+            reset_title: "إعادة تعيين",
+            read_btn: "✓ قرأتها",
+            read_done: "✓ تمّت القراءة",
+            upto_btn: "⤒ حتى هنا",
+            upto_title: "علّم كل الآيات حتى هذه الآية كمقروءة",
+            listen_short: "استمع",
+            mark_surah: "✓ علّم السورة كمقروءة",
+            unmark_surah: "↺ إزالة علامة السورة",
+            confirm_unmark_surah: "هل تريد إزالة علامات القراءة لهذه السورة؟",
+            listen_surah: "🔊 استمع للسورة",
+            continue_btn: "▶ تابع",
+            map_btn: "🗺️ الخريطة",
+            map_hint: "مربع ممتلئ: سورة مكتملة • نصف ممتلئ: قُرئت جزئيًا • فارغ: لم تُقرأ بعد. اضغط على سورة لفتحها.",
+            hatim_done: "تم ختم القرآن 🎉",
+            auto_mark: "اعتبر الآية المسموعة مقروءة",
+            audio_loading: "جاري تحميل الصوت...",
+            audio_err: "تعذّر تحميل الصوت. تحقق من الاتصال بالإنترنت.",
+            audio_done: "انتهت السورة",
+            mode_continue: "تشغيل حتى نهاية السورة",
+            mode_ayah: "تكرار الآية",
+            mode_surah: "تكرار السورة"
         }
     };
 
@@ -741,56 +964,461 @@
         updateThemeColor();
     }
 
-    // ===================== HATİM & İLERLEME =====================
+    // ===================== HATİM & OKUMA İŞARETLERİ =====================
+    // Okunan ayetler sure başına ayet numaraları olarak saklanır: { "2": [1,2,3], ... }
+    let surahCounts = (function () {
+        try { return JSON.parse(localStorage.getItem('surah_counts') || '{}') || {}; } catch (e) { return {}; }
+    })();
+
+    function loadRead() {
+        const m = {};
+        try {
+            const o = JSON.parse(localStorage.getItem('read_ayahs_v1') || '{}') || {};
+            Object.keys(o).forEach(k => { m[k] = new Set(o[k]); });
+        } catch (e) { /* bozuk kayıt: boş başla */ }
+        return m;
+    }
+    let readMap = loadRead();
+
+    function saveRead() {
+        const o = {};
+        Object.keys(readMap).forEach(k => {
+            if (readMap[k].size) o[k] = Array.from(readMap[k]).sort((x, y) => x - y);
+        });
+        try { localStorage.setItem('read_ayahs_v1', JSON.stringify(o)); } catch (e) { }
+    }
+
     function todayKey() {
         const d = new Date();
         return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
     }
-
-    // DÜZELTME: "Bugün okunan sayfa" artık her yeni günde sıfırlanıyor
+    // "Bugün işaretlenen" ayetler (yeni günde sıfırlanır)
+    let todayDate = todayKey();
+    let todaySet = (function () {
+        try {
+            const o = JSON.parse(localStorage.getItem('read_today_v1') || 'null');
+            if (o && o.date === todayDate) return new Set(o.keys);
+        } catch (e) { }
+        return new Set();
+    })();
+    function saveToday() {
+        try { localStorage.setItem('read_today_v1', JSON.stringify({ date: todayDate, keys: Array.from(todaySet) })); } catch (e) { }
+    }
     function ensureDailyReset() {
-        if (localStorage.getItem('hatim_daily_date') !== todayKey()) {
-            localStorage.setItem('hatim_daily_date', todayKey());
-            localStorage.setItem('hatim_daily_pages', '0');
+        if (todayDate !== todayKey()) { todayDate = todayKey(); todaySet = new Set(); saveToday(); }
+    }
+
+    function isRead(s, a) { return !!(readMap[s] && readMap[s].has(a)); }
+    function readCount(s) { return readMap[s] ? readMap[s].size : 0; }
+    function totalRead() { let n = 0; for (const k in readMap) n += readMap[k].size; return n; }
+    // Toplam ayet sayısı: API'den alınan sure ayet sayılarının toplamı (alınamadıysa standart 6236)
+    function totalAyahs() {
+        let sum = 0;
+        for (let i = 1; i <= 114; i++) { if (!surahCounts[i]) return 6236; sum += surahCounts[i]; }
+        return sum;
+    }
+
+    function setRead(s, a, val) {
+        ensureDailyReset();
+        if (!readMap[s]) readMap[s] = new Set();
+        const key = s + ':' + a;
+        if (val) {
+            if (!readMap[s].has(a)) todaySet.add(key);
+            readMap[s].add(a);
+        } else {
+            readMap[s].delete(a);
+            todaySet.delete(key);
         }
     }
 
-    function updateHatimUI() {
-        ensureDailyReset();
-        const totalPages = parseInt(localStorage.getItem('hatim_total_pages')) || 0;
-        const dailyPages = parseInt(localStorage.getItem('hatim_daily_pages')) || 0;
-        const lastNum = parseInt(localStorage.getItem('last_surah_number')) || 1;
-
-        const maxPages = 604;
-        const percentage = Math.min(100, Math.max(0, (totalPages / maxPages) * 100)).toFixed(1);
-
-        document.getElementById('hatimPercentage').innerText = `%${percentage}`;
-        document.getElementById('hatimProgressBar').style.width = `${percentage}%`;
-        // "Kaldığın yer" artık seçili dile göre sure adıyla gösteriliyor
-        document.getElementById('lastReadInfo').innerText = `${t.last_read} ${shortName(lastNum)}`;
-        document.getElementById('totalPageInfo').innerText = `${t.total_pages} ${totalPages} / ${maxPages} ${t.page_unit}`;
-        document.getElementById('dailyGoalText').innerText = `${t.daily_read} ${dailyPages} ${t.page_unit}`;
+    function getLastPos() {
+        try {
+            const p = JSON.parse(localStorage.getItem('last_read_pos') || 'null');
+            if (p && p.s >= 1 && p.s <= 114 && p.a >= 1) return p;
+        } catch (e) { }
+        return null;
     }
 
-    function addPages(amount) {
-        ensureDailyReset();
-        let totalPages = parseInt(localStorage.getItem('hatim_total_pages')) || 0;
-        let dailyPages = parseInt(localStorage.getItem('hatim_daily_pages')) || 0;
-
-        totalPages = Math.min(604, Math.max(0, totalPages + amount));
-        dailyPages = Math.max(0, dailyPages + amount);
-
-        localStorage.setItem('hatim_total_pages', totalPages);
-        localStorage.setItem('hatim_daily_pages', dailyPages);
+    function afterChange(pos) {
+        if (pos) { try { localStorage.setItem('last_read_pos', JSON.stringify(pos)); } catch (e) { } }
+        saveRead();
+        saveToday();
         updateHatimUI();
+        refreshSurahUI();
+    }
+
+    function toggleRead(a) {
+        const s = currentSurahNumber; if (!s) return;
+        const val = !isRead(s, a);
+        setRead(s, a, val);
+        afterChange(val ? { s: s, a: a } : null);
+    }
+
+    function markUpTo(a) {
+        const s = currentSurahNumber; if (!s) return;
+        for (let i = 1; i <= a; i++) setRead(s, i, true);
+        afterChange({ s: s, a: a });
+    }
+
+    function toggleSurahRead() {
+        const s = currentSurahNumber; if (!s) return;
+        const cnt = surahCounts[s] || 0; if (!cnt) return;
+        if (readCount(s) >= cnt) {
+            if (!confirm(t.confirm_unmark_surah)) return;
+            for (let i = 1; i <= cnt; i++) setRead(s, i, false);
+            afterChange(null);
+        } else {
+            for (let i = 1; i <= cnt; i++) setRead(s, i, true);
+            afterChange({ s: s, a: cnt });
+        }
     }
 
     function resetHatim() {
         if (confirm(t.confirm_reset)) {
-            localStorage.setItem('hatim_total_pages', '0');
-            localStorage.setItem('hatim_daily_pages', '0');
-            updateHatimUI();
+            readMap = {};
+            todaySet = new Set();
+            try { localStorage.removeItem('last_read_pos'); } catch (e) { }
+            afterChange(null);
         }
+    }
+
+    // Kaldığın yerden sonraki ilk okunmamış ayet (sona gelince baştan arar)
+    function findNextUnread() {
+        const pos = getLastPos() || { s: 1, a: 0 };
+        let s = pos.s, a = pos.a + 1;
+        while (s <= 114) {
+            const cnt = surahCounts[s] || 286;
+            if (a > cnt) { s++; a = 1; continue; }
+            if (!isRead(s, a)) return { s: s, a: a };
+            a++;
+        }
+        for (let s2 = 1; s2 <= 114; s2++) {
+            const cnt = surahCounts[s2] || 0;
+            for (let a2 = 1; a2 <= cnt; a2++) if (!isRead(s2, a2)) return { s: s2, a: a2 };
+        }
+        return null;
+    }
+
+    function scrollToAyah(a) {
+        const el = document.getElementById('v-' + a);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return !!el;
+    }
+
+    function continueReading() {
+        const next = findNextUnread();
+        if (!next) return;
+        if (next.s === currentSurahNumber && scrollToAyah(next.a)) return;
+        loadSurah(next.s, null, null, next.a);
+    }
+
+    function updateHatimUI() {
+        ensureDailyReset();
+        const total = totalRead();
+        const all = totalAyahs();
+        const pct = all ? Math.min(100, (total / all) * 100) : 0;
+        const pctStr = pct >= 100 ? '100' : pct.toFixed(1);
+        const done = all > 0 && total >= all;
+
+        document.getElementById('hatimPercentage').innerText = `%${pctStr}`;
+        document.getElementById('hatimProgressBar').style.width = `${pct}%`;
+
+        const pos = getLastPos();
+        const lastNum = parseInt(localStorage.getItem('last_surah_number')) || 1;
+        document.getElementById('lastReadInfo').innerText = done
+            ? t.hatim_done
+            : (pos ? `${t.last_read} ${shortName(pos.s)} ${pos.s}:${pos.a}` : `${t.last_read} ${shortName(lastNum)}`);
+        document.getElementById('totalPageInfo').innerText = `${t.total_pages} ${total} / ${all} ${t.page_unit}`;
+        document.getElementById('dailyGoalText').innerText = `${t.daily_read} ${todaySet.size} ${t.page_unit}`;
+        document.getElementById('continueBtn').disabled = done;
+        if (document.getElementById('hatimMap').classList.contains('open')) renderMap();
+    }
+
+    // Seçili surenin ekrandaki durumu (ayet işaretleri, sure ilerlemesi, buton yazıları)
+    function refreshSurahUI() {
+        const s = currentSurahNumber; if (!s) return;
+        document.querySelectorAll('.verse-box[data-a]').forEach(el => {
+            const a = parseInt(el.dataset.a);
+            const r = isRead(s, a);
+            el.classList.toggle('is-read', r);
+            const btn = el.querySelector('.v-read');
+            if (btn) { btn.classList.toggle('on', r); btn.textContent = r ? t.read_done : t.read_btn; }
+        });
+        const cnt = surahCounts[s] || 0;
+        const rc = readCount(s);
+        const pct = cnt ? Math.min(100, (rc / cnt) * 100) : 0;
+        document.getElementById('surahProgressBar').style.width = pct + '%';
+        document.getElementById('surahProgressText').innerText = `${rc} / ${cnt} ${t.page_unit}`;
+        document.getElementById('markSurahBtn').innerText = (cnt && rc >= cnt) ? t.unmark_surah : t.mark_surah;
+    }
+
+    // Hatim haritası: 114 sure, dolu = tamamlandı, yarım = kısmen okundu
+    function renderMap() {
+        const grid = document.getElementById('mapGrid');
+        grid.innerHTML = '';
+        for (let n = 1; n <= 114; n++) {
+            const cnt = surahCounts[n] || 0;
+            const rc = readCount(n);
+            const cell = document.createElement('button');
+            cell.className = 'map-cell';
+            const full = cnt > 0 && rc >= cnt;
+            if (full) cell.classList.add('full');
+            else cell.style.setProperty('--p', (cnt ? Math.round((rc / cnt) * 100) : (rc ? 50 : 0)) + '%');
+            if (n === currentSurahNumber) cell.classList.add('current');
+            cell.textContent = n;
+            cell.title = `${shortName(n)} • ${rc}/${cnt || '?'}`;
+            cell.onclick = () => { document.getElementById('hatimMap').classList.remove('open'); loadSurah(n); };
+            grid.appendChild(cell);
+        }
+    }
+
+    function toggleMap() {
+        const box = document.getElementById('hatimMap');
+        box.classList.toggle('open');
+        if (box.classList.contains('open')) renderMap();
+    }
+
+    // ===================== SESLİ DİNLEME (alquran.cloud ses sürümleri) =====================
+    const audioEl = new Audio();
+    audioEl.preload = 'auto';
+    const preloadEl = new Audio();
+    preloadEl.preload = 'auto';
+    const audioCache = {};                 // "sure|okuyucu" -> { ayetNo: {url, alt} }
+    const SPEEDS = [0.75, 1, 1.25, 1.5];
+    const MODES = ['continue', 'ayah', 'surah'];
+    const MODE_ICONS = { continue: '➡️', ayah: '🔂', surah: '🔁' };
+    let reciter = localStorage.getItem('quran_reciter') || 'ar.alafasy';
+    let reciterListLoaded = false;
+    let playMode = MODES.includes(localStorage.getItem('quran_play_mode')) ? localStorage.getItem('quran_play_mode') : 'continue';
+    let playSpeed = SPEEDS.includes(parseFloat(localStorage.getItem('quran_play_speed'))) ? parseFloat(localStorage.getItem('quran_play_speed')) : 1;
+    let autoMark = localStorage.getItem('quran_auto_mark') === '1';
+    let nowPlaying = null;                 // { s, a }
+    let playToken = 0;
+
+    function initPlayerUI() {
+        document.getElementById('autoMarkChk').checked = autoMark;
+        const sel = document.getElementById('reciterSelect');
+        sel.innerHTML = '';
+        const o = document.createElement('option');
+        o.value = reciter; o.textContent = reciter;
+        sel.appendChild(o);
+        updateModeBtn();
+        document.getElementById('speedBtn').textContent = playSpeed + '×';
+    }
+
+    function updateModeBtn() {
+        const b = document.getElementById('modeBtn');
+        b.textContent = MODE_ICONS[playMode];
+        b.title = t['mode_' + playMode];
+    }
+    function cycleMode() {
+        playMode = MODES[(MODES.indexOf(playMode) + 1) % MODES.length];
+        localStorage.setItem('quran_play_mode', playMode);
+        updateModeBtn();
+        setStatus(t['mode_' + playMode]);
+    }
+    function cycleSpeed() {
+        playSpeed = SPEEDS[(SPEEDS.indexOf(playSpeed) + 1) % SPEEDS.length];
+        localStorage.setItem('quran_play_speed', playSpeed);
+        audioEl.playbackRate = playSpeed;
+        document.getElementById('speedBtn').textContent = playSpeed + '×';
+    }
+    function setAutoMark(v) {
+        autoMark = !!v;
+        localStorage.setItem('quran_auto_mark', autoMark ? '1' : '0');
+    }
+
+    function setStatus(msg) { document.getElementById('playerStatus').textContent = msg || ''; }
+    function setPlayIcon(playing) { document.getElementById('playPauseBtn').textContent = playing ? '⏸' : '▶'; }
+    function openPlayer() {
+        document.getElementById('player').classList.add('open');
+        document.body.classList.add('player-open');
+    }
+    function updatePlayerTitle() {
+        if (!nowPlaying) return;
+        document.getElementById('playerTitle').textContent = `${shortName(nowPlaying.s)} ${nowPlaying.s}:${nowPlaying.a}`;
+    }
+
+    // Okuyucu listesi API'den gelir (yalnızca Arapça, ayet ayet okuyuşlar)
+    async function ensureReciters() {
+        if (reciterListLoaded) return;
+        const sel = document.getElementById('reciterSelect');
+        try {
+            const r = await fetch('https://api.alquran.cloud/v1/edition?format=audio&language=ar&type=versebyverse');
+            if (!r.ok) throw new Error('HTTP');
+            const j = await r.json();
+            const list = j.data || [];
+            if (!list.length) throw new Error('empty');
+            sel.innerHTML = '';
+            list.forEach(e => {
+                const o = document.createElement('option');
+                o.value = e.identifier;
+                o.textContent = e.englishName || e.name;
+                sel.appendChild(o);
+            });
+            if (!list.some(e => e.identifier === reciter)) {
+                reciter = list.some(e => e.identifier === 'ar.alafasy') ? 'ar.alafasy' : list[0].identifier;
+            }
+            sel.value = reciter;
+            reciterListLoaded = true;
+        } catch (e) {
+            // Liste alınamazsa varsayılan okuyucuyla devam
+            reciter = 'ar.alafasy';
+            sel.innerHTML = '<option value="ar.alafasy">Alafasy</option>';
+        }
+    }
+
+    function reciterName() {
+        const sel = document.getElementById('reciterSelect');
+        return sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].textContent : '';
+    }
+
+    async function changeReciter(v) {
+        reciter = v;
+        localStorage.setItem('quran_reciter', v);
+        if (nowPlaying) playAyah(nowPlaying.a, nowPlaying.s);
+    }
+
+    async function getAudioUrls(s) {
+        const key = s + '|' + reciter;
+        if (audioCache[key]) return audioCache[key];
+        try {
+            const r = await fetch(`https://api.alquran.cloud/v1/surah/${s}/${reciter}`);
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            const j = await r.json();
+            const map = {};
+            j.data.ayahs.forEach(x => {
+                if (x.audio) map[x.numberInSurah] = {
+                    url: x.audio.replace(/^http:/, 'https:'),
+                    alt: (x.audioSecondary && x.audioSecondary[0]) ? x.audioSecondary[0].replace(/^http:/, 'https:') : null
+                };
+            });
+            if (!Object.keys(map).length) throw new Error('no audio');
+            audioCache[key] = map;
+            return map;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    function ayahTotalFor(s, urls) {
+        return surahCounts[s] || (urls ? Object.keys(urls).length : 0);
+    }
+
+    function markPlayingVerse(scroll) {
+        document.querySelectorAll('.verse-box.playing').forEach(el => el.classList.remove('playing'));
+        if (!nowPlaying || nowPlaying.s !== currentSurahNumber) return;
+        const el = document.getElementById('v-' + nowPlaying.a);
+        if (!el) return;
+        el.classList.add('playing');
+        if (scroll) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    async function playAyah(a, s) {
+        s = s || currentSurahNumber;
+        if (!s) return;
+        const token = ++playToken;
+        nowPlaying = { s: s, a: a };
+        openPlayer();
+        updatePlayerTitle();
+        markPlayingVerse(true);
+        setStatus(t.audio_loading);
+
+        await ensureReciters();
+        if (token !== playToken) return;
+        const urls = await getAudioUrls(s);
+        if (token !== playToken) return;
+        if (!urls || !urls[a]) { setStatus(t.audio_err); setPlayIcon(false); return; }
+
+        audioEl.src = urls[a].url;
+        audioEl._alt = urls[a].alt;
+        audioEl._triedAlt = false;
+        audioEl.playbackRate = playSpeed;
+        try {
+            await audioEl.play();
+        } catch (e) {
+            if (token === playToken) { setStatus(t.audio_err); setPlayIcon(false); }
+            return;
+        }
+        if (token !== playToken) return;
+        setStatus('');
+        const total = ayahTotalFor(s, urls);
+        if (playMode !== 'ayah' && a < total && urls[a + 1]) preloadEl.src = urls[a + 1].url;
+        updateMediaSession();
+    }
+
+    function playSurah() {
+        if (currentSurahNumber) playAyah(1, currentSurahNumber);
+    }
+
+    function onAyahEnded() {
+        if (!nowPlaying) return;
+        const s = nowPlaying.s, a = nowPlaying.a;
+        if (autoMark) {
+            setRead(s, a, true);
+            afterChange({ s: s, a: a });
+        }
+        if (playMode === 'ayah') { audioEl.currentTime = 0; audioEl.play().catch(() => { }); return; }
+        const urls = audioCache[s + '|' + reciter];
+        const total = ayahTotalFor(s, urls);
+        if (a < total) playAyah(a + 1, s);
+        else if (playMode === 'surah') playAyah(1, s);
+        else { setPlayIcon(false); setStatus(t.audio_done); }
+    }
+
+    function prevAyah() { if (nowPlaying && nowPlaying.a > 1) playAyah(nowPlaying.a - 1, nowPlaying.s); }
+    function nextAyah() {
+        if (!nowPlaying) return;
+        const total = ayahTotalFor(nowPlaying.s, audioCache[nowPlaying.s + '|' + reciter]);
+        if (nowPlaying.a < total) playAyah(nowPlaying.a + 1, nowPlaying.s);
+    }
+    function togglePlay() {
+        if (!nowPlaying) return;
+        if (audioEl.paused) audioEl.play().catch(() => { setStatus(t.audio_err); });
+        else audioEl.pause();
+    }
+    function stopAudio() {
+        playToken++;
+        nowPlaying = null;
+        audioEl.pause();
+        audioEl.removeAttribute('src');
+        audioEl.load();
+        setPlayIcon(false);
+        setStatus('');
+        document.getElementById('player').classList.remove('open');
+        document.body.classList.remove('player-open');
+        markPlayingVerse(false);
+    }
+
+    audioEl.addEventListener('ended', onAyahEnded);
+    audioEl.addEventListener('play', () => setPlayIcon(true));
+    audioEl.addEventListener('pause', () => { if (nowPlaying) setPlayIcon(false); });
+    audioEl.addEventListener('error', () => {
+        if (!nowPlaying) return;
+        if (!audioEl._triedAlt && audioEl._alt) {
+            audioEl._triedAlt = true;
+            audioEl.src = audioEl._alt;
+            audioEl.play().catch(() => { });
+            return;
+        }
+        setStatus(t.audio_err);
+        setPlayIcon(false);
+    });
+
+    // Kilit ekranı / bildirim çubuğu kontrolleri
+    function updateMediaSession() {
+        if (!('mediaSession' in navigator) || !nowPlaying || typeof MediaMetadata === 'undefined') return;
+        try {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: `${shortName(nowPlaying.s)} ${nowPlaying.s}:${nowPlaying.a}`,
+                artist: reciterName(),
+                album: 'Ayetin Vakti'
+            });
+            navigator.mediaSession.setActionHandler('play', () => audioEl.play());
+            navigator.mediaSession.setActionHandler('pause', () => audioEl.pause());
+            navigator.mediaSession.setActionHandler('previoustrack', prevAyah);
+            navigator.mediaSession.setActionHandler('nexttrack', nextAyah);
+        } catch (e) { }
     }
 
     // ===================== BAŞLATMA =====================
@@ -828,6 +1456,7 @@
         buildIndex();
         renderSurahOptions();
         updateHatimUI();
+        initPlayerUI();
 
         const lastSurahNum = parseInt(localStorage.getItem('last_surah_number')) || 1;
         document.getElementById('surahSelect').value = lastSurahNum;
@@ -838,7 +1467,8 @@
             const res = await fetch('https://api.alquran.cloud/v1/surah');
             if (!res.ok) throw new Error('API');
             const data = await res.json();
-            data.data.forEach(s => { surahMap[s.number] = s; });
+            data.data.forEach(s => { surahMap[s.number] = s; surahCounts[s.number] = s.numberOfAyahs; });
+            try { localStorage.setItem('surah_counts', JSON.stringify(surahCounts)); } catch (e) { }
             buildIndex();
             renderSurahOptions();
             updateHatimUI();
@@ -1009,7 +1639,7 @@
         document.getElementById('surahMeta').innerText = meta;
     }
 
-    async function loadSurah(surahNumber, targetAyah = null, startAyah = null) {
+    async function loadSurah(surahNumber, targetAyah = null, startAyah = null, scrollAyah = null) {
         const n = parseInt(surahNumber);
         if (!n || n < 1 || n > 114) return;
 
@@ -1040,6 +1670,10 @@
 
             // Başlık bilgisini içerikten de tamamlıyoruz (liste API'si gelmediyse bile çalışır)
             if (!surahMap[n]) surahMap[n] = arabicData;
+            if (arabicData.numberOfAyahs && surahCounts[n] !== arabicData.numberOfAyahs) {
+                surahCounts[n] = arabicData.numberOfAyahs;
+                try { localStorage.setItem('surah_counts', JSON.stringify(surahCounts)); } catch (e) { }
+            }
             setHeader(n, surahMap[n]);
 
             const ayahsArabic = arabicData.ayahs;
@@ -1061,28 +1695,37 @@
                     if (words.length > 4) arabicText = words.slice(4).join(' ').trim();
                 }
 
-                const isHighlight = (targetAyah && ayahNum === targetAyah) || (startAyah && ayahNum >= startAyah);
+                const isHighlight = (targetAyah && ayahNum === targetAyah) || (startAyah && ayahNum >= startAyah) || (scrollAyah && ayahNum === scrollAyah);
                 const translitHtml = ayahsTranslit && ayahsTranslit[i]
                     ? `<div class="transliteration-text"><strong>${t.transliteration_label}</strong> ${ayahsTranslit[i].text}</div>` : '';
                 const translHtml = ayahsTransl && ayahsTransl[i]
                     ? `<div class="translation-text ${activeLang === 'ar' ? 'is-ar' : ''}"><strong>${t.translation_label}</strong> ${ayahsTransl[i].text}</div>` : '';
 
                 htmlContent += `
-                    <div class="verse-box ${isHighlight ? 'highlight' : ''}">
+                    <div class="verse-box ${isHighlight ? 'highlight' : ''}" id="v-${ayahNum}" data-a="${ayahNum}">
                         <div style="display: flex; align-items: center; justify-content: flex-end; gap: 8px;">
                             <div class="arabic-text">${arabicText}</div>
                             <span class="verse-number-badge">${ayahNum}</span>
                         </div>
                         ${translitHtml}
                         ${translHtml}
+                        <div class="verse-actions">
+                            <button class="v-btn" onclick="playAyah(${ayahNum})">▶ ${t.listen_short}</button>
+                            <button class="v-btn v-read" onclick="toggleRead(${ayahNum})">${t.read_btn}</button>
+                            <button class="v-btn" onclick="markUpTo(${ayahNum})" title="${t.upto_title}">${t.upto_btn}</button>
+                        </div>
                     </div>
                 `;
             }
 
             contentEl.className = '';
             contentEl.innerHTML = htmlContent;
+            refreshSurahUI();
+            markPlayingVerse(false);
 
-            if (targetAyah || startAyah) {
+            if (scrollAyah) {
+                setTimeout(() => scrollToAyah(scrollAyah), 300);
+            } else if (targetAyah || startAyah) {
                 setTimeout(() => {
                     const highlighted = document.querySelector('.verse-box.highlight');
                     if (highlighted) highlighted.scrollIntoView({ behavior: 'smooth', block: 'center' });
