@@ -168,7 +168,9 @@
 
 .nav-group { display: flex; align-items: center; gap: 8px; }
 .nav-group > * { flex: none; }
-.app-title { padding: 0 8px; }
+/* Başlık: üst çubuğun altında, ortalı ayrı satır */
+.page-head { display: flex; align-items: center; justify-content: center; padding: 0 8px; }
+.page-head .app-title { flex: none; padding: 0 8px; font-size: clamp(1.05rem, 5vw, 1.25rem); color: var(--accent-color); }
 
         .theme-icon-btn {
             background-color: var(--btn-bg);
@@ -618,12 +620,15 @@
 <div class="container">
     <header class="navbar">
     <div class="nav-group">
-        <a href="../" class="home-btn" title="Ana Sayfa">←</a>
-        <button class="theme-icon-btn" data-drawer-toggle aria-label="Menü" title="Menü">☰</button>
+        <a href="https://ayetinvakti.github.io/" class="home-btn" title="Ana Sayfa" aria-label="Ana Sayfa">←</a>
+        <button class="theme-icon-btn" data-drawer-toggle aria-label="Menü" aria-controls="avmDrawer" title="Menü">☰</button>
     </div>
-    <div class="app-title" data-i18n="app_title">Kur'an-ı Kerim Meal & Okunuş</div>
-    <button class="theme-icon-btn" onclick="toggleTheme()" id="theme-btn" title="Tema Değiştir">🌙</button>
+    <button class="theme-icon-btn" onclick="toggleTheme()" id="theme-btn" title="Tema Değiştir" aria-label="Tema Değiştir">🌙</button>
 </header>
+
+    <div class="page-head">
+        <h1 class="app-title" data-i18n="app_title">Kur'an-ı Kerim Meal & Okunuş</h1>
+    </div>
 
     <!-- HATİM VE İLERLEME TAKİP PANELİ -->
     <div class="tracker-card">
