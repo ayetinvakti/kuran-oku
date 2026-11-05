@@ -159,12 +159,16 @@
         }
 
         .app-title {
-            font-size: 1.05rem;
-            font-weight: 700;
-            color: var(--text-color);
-            text-align: center;
-            flex: 1;
-        }
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-color);
+    text-align: center;
+    flex: 1;
+}
+
+.nav-group { display: flex; align-items: center; gap: 8px; }
+.nav-group > * { flex: none; }
+.app-title { padding: 0 8px; }
 
         .theme-icon-btn {
             background-color: var(--btn-bg);
@@ -613,11 +617,13 @@
 
 <div class="container">
     <header class="navbar">
+    <div class="nav-group">
         <a href="../" class="home-btn" title="Ana Sayfa">←</a>
-        <button class="icon-btn" data-drawer-toggle aria-label="Menü">☰</button>
-        <div class="app-title" data-i18n="app_title">Kur'an-ı Kerim Meal & Okunuş</div>
-        <button class="theme-icon-btn" onclick="toggleTheme()" id="theme-btn" title="Tema Değiştir">🌙</button>
-    </header>
+        <button class="theme-icon-btn" data-drawer-toggle aria-label="Menü" title="Menü">☰</button>
+    </div>
+    <div class="app-title" data-i18n="app_title">Kur'an-ı Kerim Meal & Okunuş</div>
+    <button class="theme-icon-btn" onclick="toggleTheme()" id="theme-btn" title="Tema Değiştir">🌙</button>
+</header>
 
     <!-- HATİM VE İLERLEME TAKİP PANELİ -->
     <div class="tracker-card">
