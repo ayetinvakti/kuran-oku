@@ -2,6 +2,7 @@
 <html lang="tr">
 <head>
     
+    <script src="https://ayetinvakti.github.io/finish.js?v=4"></script>
     <script src="https://ayetinvakti.github.io/menu.js" defer></script>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -618,12 +619,12 @@
 <body>
 
 <div class="container">
-    <header class="navbar">
+    <header class="navbar fin-card">
     <div class="nav-group">
-        <a href="https://ayetinvakti.github.io/" class="home-btn" title="Ana Sayfa" aria-label="Ana Sayfa">←</a>
-        <button class="theme-icon-btn" data-drawer-toggle aria-label="Menü" aria-controls="avmDrawer" title="Menü">☰</button>
+        <a href="https://ayetinvakti.github.io/" class="home-btn fin-btn" title="Ana Sayfa" aria-label="Ana Sayfa">←</a>
+        <button class="theme-icon-btn fin-btn" data-drawer-toggle aria-label="Menü" aria-controls="avmDrawer" title="Menü">☰</button>
     </div>
-    <button class="theme-icon-btn" onclick="toggleTheme()" id="theme-btn" title="Tema Değiştir" aria-label="Tema Değiştir">🌙</button>
+    <button class="theme-icon-btn fin-btn" onclick="toggleTheme()" id="theme-btn" title="Tema Değiştir" aria-label="Tema Değiştir">🌙</button>
 </header>
 
     <div class="page-head">
@@ -631,7 +632,7 @@
     </div>
 
     <!-- HATİM VE İLERLEME TAKİP PANELİ -->
-    <div class="tracker-card">
+    <div class="tracker-card fin-card">
         <div class="tracker-header">
             <div class="tracker-title"><span data-i18n="hatim_title">📖 Hatim & İlerleme Takibi</span></div>
             <span id="hatimPercentage" style="font-weight: 700; color: var(--accent-color);">%0</span>
@@ -646,9 +647,9 @@
         <div class="daily-goal-row">
             <span id="dailyGoalText">Bugün: 0 ayet</span>
             <div class="tracker-actions">
-                <button class="tool-btn primary" id="continueBtn" onclick="continueReading()" data-i18n="continue_btn">▶ Devam et</button>
-                <button class="tool-btn" onclick="toggleMap()" data-i18n="map_btn">🗺️ Harita</button>
-                <button class="goal-btn" onclick="resetHatim()" data-i18n-title="reset_title">🔄</button>
+                <button class="tool-btn primary fin-btn" id="continueBtn" onclick="continueReading()" data-i18n="continue_btn">▶ Devam et</button>
+                <button class="tool-btn fin-btn" onclick="toggleMap()" data-i18n="map_btn">🗺️ Harita</button>
+                <button class="goal-btn fin-btn" onclick="resetHatim()" data-i18n-title="reset_title">🔄</button>
             </div>
         </div>
         <div class="hatim-map" id="hatimMap">
@@ -657,7 +658,7 @@
         </div>
     </div>
 
-    <div class="select-card">
+    <div class="select-card fin-card">
         <input type="text" id="searchInput" class="search-input" autocomplete="off" placeholder="🔍 Sure veya Ayet ara (Örn: İnşirah, Ayetel Kürsi...)" oninput="filterSurahs()" onkeydown="searchKeydown(event)" data-i18n-placeholder="search_placeholder">
         <div id="searchResults" class="search-results"></div>
         
@@ -666,7 +667,7 @@
         </select>
     </div>
 
-    <div class="reader-card">
+    <div class="reader-card fin-card">
         <div class="surah-info-header" id="surahHeader" style="display: none;">
             <div class="surah-name-tr" id="surahTitle">Fatiha Suresi</div>
             <div class="surah-name-ar" id="surahTitleAr"></div>
@@ -676,8 +677,8 @@
                 <div class="surah-progress-text" id="surahProgressText"></div>
             </div>
             <div class="surah-actions">
-                <button class="tool-btn primary" onclick="playSurah()" data-i18n="listen_surah">🔊 Sureyi dinle</button>
-                <button class="tool-btn" id="markSurahBtn" onclick="toggleSurahRead()"></button>
+                <button class="tool-btn primary fin-btn" onclick="playSurah()" data-i18n="listen_surah">🔊 Sureyi dinle</button>
+                <button class="tool-btn fin-btn" id="markSurahBtn" onclick="toggleSurahRead()"></button>
             </div>
         </div>
 
@@ -685,7 +686,7 @@
             بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
         </div>
 
-        <button id="fullSurahBtn" class="full-surah-btn" onclick="showFullSurah()" data-i18n="show_full">Tüm sureyi oku</button>
+        <button id="fullSurahBtn" class="full-surah-btn fin-btn" onclick="showFullSurah()" data-i18n="show_full">Tüm sureyi oku</button>
 
         <div id="quranContent" class="loading-spinner" data-i18n="loading_surah">
             Sure yükleniyor...
@@ -693,19 +694,19 @@
     </div>
 </div>
 
-<div class="player" id="player">
+<div class="player fin-card" id="player">
     <div class="player-inner">
         <div class="player-row">
             <div class="player-title" id="playerTitle"></div>
-            <button class="p-btn small" onclick="stopAudio()">✕</button>
+            <button class="p-btn small fin-btn" onclick="stopAudio()">✕</button>
         </div>
         <div class="player-status" id="playerStatus"></div>
         <div class="player-row center">
-            <button class="p-btn" id="modeBtn" onclick="cycleMode()">➡️</button>
-            <button class="p-btn" onclick="prevAyah()">⏮</button>
-            <button class="p-btn main" id="playPauseBtn" onclick="togglePlay()">▶</button>
-            <button class="p-btn" onclick="nextAyah()">⏭</button>
-            <button class="p-btn" id="speedBtn" onclick="cycleSpeed()" style="font-size:0.75rem">1×</button>
+            <button class="p-btn fin-btn" id="modeBtn" onclick="cycleMode()">➡️</button>
+            <button class="p-btn fin-btn" onclick="prevAyah()">⏮</button>
+            <button class="p-btn main fin-btn" id="playPauseBtn" onclick="togglePlay()">▶</button>
+            <button class="p-btn fin-btn" onclick="nextAyah()">⏭</button>
+            <button class="p-btn fin-btn" id="speedBtn" onclick="cycleSpeed()" style="font-size:0.75rem">1×</button>
         </div>
         <div class="player-row">
             <select class="p-select" id="reciterSelect" onchange="changeReciter(this.value)"></select>
