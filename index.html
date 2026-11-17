@@ -1087,6 +1087,46 @@
         if (todayDate !== todayKey()) { todayDate = todayKey(); todaySet = new Set(); saveToday(); }
     }
 
+
+    // ---- Amel Defteri eşleşmesi: okuma/dinleme "Kur'an okudum" / "Kur'an dinledim" amellerini işaretler ----
+    // Amel Defteri kaydına (amel_v1) dokunmadan aynı yapıda yazar; elle kaldırılan işaret aynı gün yeniden eklenmez.
+    function amelYmd() {
+        const d = new Date(), p = n => String(n).padStart(2, '0');
+        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+    // durum: 0 = henüz işlenmedi, 1 = bizim eklediğimiz, 2 = zaten işaretliydi (bize ait değil)
+    function amelApply(fn) {
+        try {
+            const dk = amelYmd();
+            let o = JSON.parse(localStorage.getItem('amel_v1') || 'null');
+            if (!o || typeof o !== 'object' || !o.days) o = { days: {}, cust: (o && o.cust) || [] };
+            let au = JSON.parse(localStorage.getItem('amel_auto_v1') || 'null');
+            if (!au || au.date !== dk) au = { date: dk, q1: 0, q2: 0 };
+            const list = (o.days[dk] || []).slice();
+            fn(list, au);
+            if (list.length) o.days[dk] = list; else delete o.days[dk];
+            localStorage.setItem('amel_v1', JSON.stringify(o));
+            localStorage.setItem('amel_auto_v1', JSON.stringify(au));
+        } catch (e) { /* kayıt yazılamazsa okuma akışı etkilenmesin */ }
+    }
+    function amelSyncRead() {
+        amelApply((list, au) => {
+            const i = list.indexOf('q1');
+            if (todaySet.size > 0) {
+                if (au.q1 === 0) { if (i < 0) { list.push('q1'); au.q1 = 1; } else au.q1 = 2; }
+            } else if (au.q1 === 1) {
+                if (i >= 0) list.splice(i, 1);
+                au.q1 = 0;
+            }
+        });
+    }
+    function amelSyncListen() {
+        amelApply((list, au) => {
+            if (au.q2 !== 0) return;
+            if (list.indexOf('q2') < 0) { list.push('q2'); au.q2 = 1; } else au.q2 = 2;
+        });
+    }
+
     function isRead(s, a) { return !!(readMap[s] && readMap[s].has(a)); }
     function readCount(s) { return readMap[s] ? readMap[s].size : 0; }
     function totalRead() { let n = 0; for (const k in readMap) n += readMap[k].size; return n; }
@@ -1122,6 +1162,7 @@
         if (pos) { try { localStorage.setItem('last_read_pos', JSON.stringify(pos)); } catch (e) { } }
         saveRead();
         saveToday();
+        amelSyncRead();
         updateHatimUI();
         refreshSurahUI();
     }
@@ -1618,6 +1659,7 @@
     function onAyahEnded() {
         if (!nowPlaying) return;
         const s = nowPlaying.s, a = nowPlaying.a;
+        amelSyncListen();
         if (autoMark) {
             setRead(s, a, true);
             afterChange({ s: s, a: a });
